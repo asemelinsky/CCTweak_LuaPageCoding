@@ -13,7 +13,7 @@ jobs:
       - name: Install lftp
         run: sudo apt-get install -y lftp
 
-      - name: Explore SFTP structure
+      - name: Deploy via SFTP
         env:
           SFTP_HOST: ${{ secrets.SFTP_HOST }}
           SFTP_PORT: ${{ secrets.SFTP_PORT }}
@@ -22,6 +22,22 @@ jobs:
         run: |
           lftp -u "$SFTP_USER","$SFTP_PASS" "sftp://$SFTP_HOST:$SFTP_PORT" <<'LFTP'
           set sftp:auto-confirm yes
-          pwd
-          ls
+          set net:max-retries 3
+          cd bajka.pp.ua/minecraft/lua
+
+          # Видаляємо старі файли версій (тепер є git)
+          set cmd:fail-exit false
+          rm index_v1.html
+          rm index_v2.html
+          rm index_v3.html
+          rm index_v4_20251230.html
+          rm index_v5_20260118.html
+          set cmd:fail-exit true
+
+          # Завантажуємо актуальні файли
+          put index.html
+          put upload.php
+          put list_files.php
+          put turtle_completions.js
+          bye
           LFTP
