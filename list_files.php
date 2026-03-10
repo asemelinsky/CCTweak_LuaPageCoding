@@ -27,7 +27,15 @@ if (!$sftp->login($user, $pass)) error_exit("SFTP логін не вдався."
 
 $dir = "world/computercraft/computer/$comp";
 
-if ($file) {
+$action = $data['action'] ?? '';
+
+if ($action === 'delete' && $file) {
+    // 🗑️ Видалити файл
+    $path = "$dir/$file";
+    if (!$sftp->file_exists($path)) error_exit("Файл не знайдено: $file");
+    if (!$sftp->delete($path)) error_exit("Не вдалося видалити файл: $file");
+    echo json_encode(["ok" => true]);
+} elseif ($file) {
     // 🔹 Якщо передано "file" — повертаємо вміст файлу
     $path = "$dir/$file";
     if (!$sftp->file_exists($path)) error_exit("Файл не знайдено: $file");

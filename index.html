@@ -181,10 +181,17 @@
 
     #ftpStatus {
       margin-top: 8px;
-      font-size: 0.9em;
-      color: #9cdcfe;
+      font-size: 0.85em;
       word-wrap: break-word;
+      padding: 5px 8px;
+      border-radius: 4px;
+      min-height: 28px;
+      transition: opacity 0.5s;
     }
+
+    #ftpStatus.status-loading { color: #9cdcfe; }
+    #ftpStatus.status-success { color: #4ec9b0; background: rgba(78,201,176,0.08); border: 1px solid rgba(78,201,176,0.25); }
+    #ftpStatus.status-error   { color: #f48771; background: rgba(244,135,113,0.08); border: 1px solid rgba(244,135,113,0.25); }
 
     #fileList {
       list-style: none;
@@ -198,14 +205,41 @@
     }
 
     #fileList li {
-      padding: 5px 10px;
+      padding: 4px 8px;
       border-bottom: 1px solid #333;
-      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 4px;
     }
 
-    #fileList li:hover {
-      background-color: #333;
+    #fileList li:hover { background-color: #2a2a2a; }
+    #fileList li.active { background-color: #1f3a5f; color: #9cdcfe; }
+
+    .file-name {
+      flex-grow: 1;
+      cursor: pointer;
+      font-size: 13px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
+
+    .file-delete-btn {
+      background: none;
+      border: none;
+      color: #555;
+      cursor: pointer;
+      font-size: 13px;
+      padding: 1px 4px;
+      width: auto;
+      margin: 0;
+      opacity: 0;
+      transition: opacity 0.15s, color 0.15s;
+      flex-shrink: 0;
+    }
+
+    #fileList li:hover .file-delete-btn { opacity: 1; }
+    .file-delete-btn:hover { color: #f48771 !important; background: none !important; }
 
     /* 🔧 Виправлення автодоповнення - ШИРШЕ ВІКНО */
     .ace_autocomplete {
@@ -366,12 +400,12 @@
 
       <!-- 🔍 Масштабування тексту -->
       <div class="zoom-controls">
-        <button id="zoomOutBtn">🔍− Зменшити</button>
-        <button id="zoomInBtn">🔍+ Збільшити</button>
+        <button id="zoomOutBtn" title="Зменшити шрифт (Ctrl+-)">A−</button>
+        <button id="zoomInBtn" title="Збільшити шрифт (Ctrl++)">A+</button>
       </div>
 
       <!-- 🚀 Кнопка тестування -->
-      <button id="runBtn" class="run-button">▶ Запустити тест</button>
+      <button id="runBtn" class="run-button" title="Запустити тест (Ctrl+Enter)">▶ Запустити тест</button>
 
       <h2>📂 Локальні дії</h2>
       <button id="loadBtn">📂 Завантажити файл</button>
@@ -381,8 +415,8 @@
       <!-- 📤 Вивантаження -->
       <h2>📤 Вивантаження на сервер</h2>
       <input type="number" id="compNumber" placeholder="Номер комп'ютера (наприклад, 202)">
-      <button id="uploadBtn">Вивантажити на сервер</button>
-      <p id="ftpStatus"></p>
+      <button id="uploadBtn" title="Вивантажити на сервер (Ctrl+Shift+S)">Вивантажити на сервер</button>
+      <div id="ftpStatus"></div>
 
       <!-- 📁 Перегляд файлів -->
       <h2>📁 Файли на сервері</h2>
@@ -581,6 +615,80 @@
         })));
       }
     };
+
+    // Поточний відкритий файл з сервера
+    let currentServerFile = null;
+
+    // Статус upload з автофейдом
+    function setStatus(msg, type) {
+      const el = document.getElementById("ftpStatus");
+      el.className = "status-" + type;
+      el.style.opacity = "1";
+      el.textContent = msg;
+      if (type === "success") {
+        setTimeout(() => {
+          el.style.opacity = "0";
+          setTimeout(() => { el.textContent = ""; el.className = ""; el.style.opacity = "1"; }, 500);
+        }, 3000);
+      }
+    }
+
+    // Оновити список файлів на сервері
+    function refreshFileList() {
+      const comp = document.getElementById("compNumber").value.trim();
+      if (!comp) return;
+      const fileList = document.getElementById("fileList");
+      fileList.innerHTML = "<li>⏳ Завантаження...</li>";
+      fetch("list_files.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comp })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) { fileList.innerHTML = `<li style='color:red;'>${data.error}</li>`; return; }
+        if (!data.files || data.files.length === 0) { fileList.innerHTML = "<li>(порожньо)</li>"; return; }
+        fileList.innerHTML = "";
+        data.files.forEach(f => {
+          const li = document.createElement("li");
+          if (f === currentServerFile) li.classList.add("active");
+
+          const nameSpan = document.createElement("span");
+          nameSpan.className = "file-name";
+          nameSpan.textContent = f;
+          nameSpan.title = f;
+          nameSpan.onclick = () => loadFileFromServer(comp, f);
+
+          const delBtn = document.createElement("button");
+          delBtn.className = "file-delete-btn";
+          delBtn.textContent = "🗑";
+          delBtn.title = "Видалити з сервера";
+          delBtn.onclick = (e) => { e.stopPropagation(); deleteFileFromServer(comp, f); };
+
+          li.appendChild(nameSpan);
+          li.appendChild(delBtn);
+          fileList.appendChild(li);
+        });
+      })
+      .catch(err => { fileList.innerHTML = `<li style='color:red;'>Помилка: ${err.message}</li>`; });
+    }
+
+    // Видалити файл з сервера
+    function deleteFileFromServer(comp, file) {
+      if (!confirm(`Видалити "${file}" з сервера?`)) return;
+      fetch("list_files.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comp, file, action: "delete" })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) { alert("❌ " + data.error); return; }
+        if (currentServerFile === file) currentServerFile = null;
+        refreshFileList();
+      })
+      .catch(err => alert("❌ " + err.message));
+    }
 
     // Додавання рядка в консоль
     function addConsoleLog(text, type = "info") {
@@ -963,19 +1071,21 @@
         reader.readAsText(file, "UTF-8");
       });
 
-      // 📤 Вивантажити на сервер
-      document.getElementById("uploadBtn").onclick = function uploadToFtp() {
+      // 📤 Вивантажити на сервер (Ctrl+Shift+S)
+      document.getElementById("uploadBtn").onclick = function() {
         const code = editor.getValue().trim();
         const comp = document.getElementById("compNumber").value.trim();
         const fileName = document.getElementById("fileName").value.trim();
-        const status = document.getElementById("ftpStatus");
 
         if (!code || !comp || !fileName) {
-          status.innerText = "⛔ Заповніть всі поля.";
+          setStatus("⛔ Заповніть всі поля.", "error");
           return;
         }
 
-        status.innerText = "⏳ Відправлення...";
+        // Зберігаємо номер комп'ютера
+        localStorage.setItem("lua_comp", comp);
+
+        setStatus("⏳ Відправлення...", "loading");
 
         fetch("upload.php", {
           method: "POST",
@@ -983,46 +1093,43 @@
           body: JSON.stringify({ code, comp, fileName })
         })
         .then(res => res.text())
-        .then(result => status.innerText = "✅ " + result)
-        .catch(err => status.innerText = "❌ Помилка: " + err.message);
+        .then(() => {
+          setStatus(`✅ Збережено: ${fileName}`, "success");
+          currentServerFile = fileName;
+          refreshFileList();
+        })
+        .catch(err => setStatus("❌ " + err.message, "error"));
       };
 
       // 📁 Оновити список файлів
-      const fileList = document.getElementById("fileList");
       document.getElementById("refreshFilesBtn").onclick = function() {
         const comp = document.getElementById("compNumber").value.trim();
         if (!comp) return alert("Вкажіть номер комп'ютера.");
-
-        fileList.innerHTML = "<li>⏳ Завантаження...</li>";
-
-        fetch("list_files.php", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ comp })
-        })
-        .then(res => res.json())
-        .then(data => {
-          if (data.error) {
-            fileList.innerHTML = `<li style='color:red;'>${data.error}</li>`;
-            return;
-          }
-          if (!data.files || data.files.length === 0) {
-            fileList.innerHTML = "<li>(порожньо)</li>";
-            return;
-          }
-
-          fileList.innerHTML = "";
-          data.files.forEach(f => {
-            const li = document.createElement("li");
-            li.textContent = f;
-            li.onclick = () => loadFileFromServer(comp, f);
-            fileList.appendChild(li);
-          });
-        })
-        .catch(err => {
-          fileList.innerHTML = `<li style='color:red;'>Помилка: ${err.message}</li>`;
-        });
+        refreshFileList();
       };
+
+      // Зберігаємо номер комп'ютера при введенні
+      document.getElementById("compNumber").addEventListener("input", function() {
+        if (this.value.trim()) localStorage.setItem("lua_comp", this.value.trim());
+      });
+
+      // Відновлюємо номер комп'ютера з localStorage
+      const savedComp = localStorage.getItem("lua_comp");
+      if (savedComp) document.getElementById("compNumber").value = savedComp;
+
+      // ⌨️ Гарячі клавіші
+      document.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && e.shiftKey && e.key === "S") {
+          e.preventDefault();
+          document.getElementById("uploadBtn").click();
+        } else if (e.ctrlKey && !e.shiftKey && e.key === "s") {
+          e.preventDefault();
+          document.getElementById("saveBtn").click();
+        } else if (e.ctrlKey && e.key === "Enter") {
+          e.preventDefault();
+          document.getElementById("runBtn").click();
+        }
+      });
     };
 
     // 📥 Завантажити вибраний файл у редактор
@@ -1038,6 +1145,8 @@
         editor.setValue(data.content, -1);
         document.getElementById("fileName").value = data.name;
         syncTabName(data.name);
+        currentServerFile = data.name;
+        refreshFileList();
       })
       .catch(err => alert("❌ Помилка: " + err.message));
     }
