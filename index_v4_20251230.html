@@ -1,0 +1,271 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <title>ComputerCraft : Lua Editor Pro</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #1e1e1e;
+      color: #ddd;
+    }
+
+    #container {
+      display: flex;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    #editor {
+      flex-grow: 1;
+      height: 100%;
+      width: 100%;
+      font-size: 14px;
+      position: relative;
+    }
+
+    #sidebar {
+      width: 320px;
+      background-color: #252526;
+      padding: 15px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.4);
+    }
+
+    input, button {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 8px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    input { background-color: #333; color: #eee; }
+    button { background-color: #0e639c; color: white; font-weight: bold; cursor: pointer; }
+    button:hover { background-color: #1177bb; }
+
+    #fileList {
+      list-style: none;
+      padding-left: 0;
+      max-height: 180px;
+      overflow-y: auto;
+      background-color: #1f1f1f;
+      border: 1px solid #333;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    #fileList li {
+      padding: 5px 10px;
+      border-bottom: 1px solid #333;
+      cursor: pointer;
+    }
+
+    #fileList li:hover { background-color: #333; }
+
+    .fontButtons {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 10px;
+    }
+  </style>
+
+  <!-- Ace Editor та розширення -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ext-language_tools.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ext-beautify.min.js"></script>
+
+  <!-- Підключаємо автопідказки turtle -->
+  <script src="turtle_completions.js"></script>
+</head>
+<body>
+  <div id="container">
+    <div id="editor">-- Welcome to Lua Editor Pro</div>
+
+    <div id="sidebar">
+      <h2>Lua Editor</h2>
+      <input type="text" id="fileName" value="program.lua" placeholder="Назва файлу">
+
+      <div class="fontButtons">
+        <button id="fontUp">A+</button>
+        <button id="fontDown">A-</button>
+      </div>
+
+      <button id="loadBtn">📂 Завантажити файл</button>
+      <input type="file" id="fileInput" accept=".lua,.txt" style="display:none;">
+      <button id="saveBtn">💾 Зберегти локально</button>
+
+      <input type="number" id="compNumber" placeholder="Номер комп'ютера (напр. 154)" style="margin-top:25px;">
+	  
+      <h2>📤 Вивантаження</h2>
+      <button id="uploadBtn">Вивантажити на сервер</button>
+      <p id="ftpStatus"></p>
+
+      <h2>📁 Файли на сервері</h2>
+      <button id="refreshFilesBtn">🔄 Отримати список</button>
+      <ul id="fileList"><li style="color:#777;">(немає даних)</li></ul>
+    </div>
+  </div>
+
+  <script>
+    let editor;
+
+    window.onload = function() {
+      editor = ace.edit("editor");
+      editor.setTheme("ace/theme/one_dark");
+      editor.session.setMode("ace/mode/lua");
+      editor.setShowPrintMargin(false);
+
+      editor.setOptions({
+        fontSize: "14px",
+        wrap: true,
+        highlightActiveLine: true,
+        enableBasicAutocompletion: true,
+        enableLiveAutocompletion: true,
+        enableSnippets: true,
+        showGutter: true,
+        showFoldWidgets: true,
+        displayIndentGuides: true,
+        showInvisibles: false,
+      });
+
+      // 🔁 Відновлення збереженого розміру шрифту
+      const savedFont = localStorage.getItem("luaFontSize");
+      if (savedFont) editor.setOption("fontSize", savedFont + "px");
+
+      // 🧠 Відновлення останнього коду з localStorage
+      const savedCode = localStorage.getItem("luaEditorCode");
+      if (savedCode) editor.setValue(savedCode, -1);
+
+      editor.session.on('change', function() {
+        localStorage.setItem("luaEditorCode", editor.getValue());
+      });
+
+      // 💾 Зберегти файл
+      document.getElementById("saveBtn").onclick = function() {
+        const blob = new Blob([editor.getValue()], {type: "text/plain"});
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = document.getElementById("fileName").value || "program.lua";
+        a.click();
+      };
+
+      // 📂 Завантажити файл
+      const fileInput = document.getElementById("fileInput");
+      document.getElementById("loadBtn").onclick = () => fileInput.click();
+      fileInput.addEventListener("change", e => {
+        const f = e.target.files[0];
+        if (!f) return;
+        const r = new FileReader();
+        r.onload = ev => editor.setValue(ev.target.result, -1);
+        r.readAsText(f, "UTF-8");
+        document.getElementById("fileName").value = f.name;
+      });
+
+      // 📤 Вивантаження
+      document.getElementById("uploadBtn").onclick = function() {
+        const code = editor.getValue().trim();
+        const comp = document.getElementById("compNumber").value.trim();
+        const fileName = document.getElementById("fileName").value.trim();
+        const status = document.getElementById("ftpStatus");
+
+        if (!code || !comp || !fileName) {
+          status.innerText = "⛔ Заповніть всі поля.";
+          return;
+        }
+
+        status.innerText = "⏳ Відправлення...";
+
+        fetch("upload.php", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({code, comp, fileName})
+        })
+        .then(res => res.text())
+        .then(t => status.innerText = "✅ " + t)
+        .catch(e => status.innerText = "❌ Помилка: " + e.message);
+      };
+
+      // 📁 Отримати список файлів
+      const fileList = document.getElementById("fileList");
+      document.getElementById("refreshFilesBtn").onclick = function() {
+        const comp = document.getElementById("compNumber").value.trim();
+        if (!comp) return alert("Вкажіть номер комп’ютера.");
+        fileList.innerHTML = "<li>⏳ Завантаження...</li>";
+
+        fetch("list_files.php", {
+          method: "POST",
+          headers: {"Content-Type": "application/json"},
+          body: JSON.stringify({comp})
+        })
+        .then(r => r.json())
+        .then(data => {
+          if (data.error) { fileList.innerHTML = `<li style='color:red;'>${data.error}</li>`; return; }
+          if (!data.files || data.files.length === 0) { fileList.innerHTML = "<li>(порожньо)</li>"; return; }
+          fileList.innerHTML = "";
+          data.files.forEach(f => {
+            const li = document.createElement("li");
+            li.textContent = f;
+            li.onclick = () => loadFileFromServer(comp, f);
+            fileList.appendChild(li);
+          });
+        })
+        .catch(err => fileList.innerHTML = `<li style='color:red;'>${err.message}</li>`);
+      };
+    };
+
+    // 📥 Завантажити файл з сервера
+    function loadFileFromServer(comp, file) {
+      fetch("list_files.php", {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({comp, file})
+      })
+      .then(r => r.json())
+      .then(data => {
+        if (data.error) return alert(data.error);
+        editor.setValue(data.content, -1);
+        document.getElementById("fileName").value = data.name;
+      })
+      .catch(e => alert("❌ Помилка: " + e.message));
+    }
+
+    // 🔍 Зміна розміру шрифту
+    document.addEventListener("keydown", function(e) {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "=" || e.key === "+")) {
+        e.preventDefault();
+        changeFontSize(1);
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "-") {
+        e.preventDefault();
+        changeFontSize(-1);
+      } else if ((e.ctrlKey || e.metaKey) && e.key === "0") {
+        e.preventDefault();
+        resetFontSize();
+      }
+    });
+
+    function changeFontSize(delta) {
+      const size = parseInt(editor.getOption("fontSize"), 10);
+      const newSize = Math.min(Math.max(size + delta, 10), 28);
+      editor.setOption("fontSize", newSize + "px");
+      localStorage.setItem("luaFontSize", newSize);
+    }
+
+    function resetFontSize() {
+      editor.setOption("fontSize", "14px");
+      localStorage.setItem("luaFontSize", 14);
+    }
+
+    // 🅰️ Кнопки A+ / A-
+    document.getElementById("fontUp").onclick = () => changeFontSize(1);
+    document.getElementById("fontDown").onclick = () => changeFontSize(-1);
+  </script>
+</body>
+</html>

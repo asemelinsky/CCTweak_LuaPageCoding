@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <title>ComputerCraft : Lua Editor</title>
+  <style>
+    html, body {
+      margin: 0;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #1e1e1e;
+      color: #ddd;
+    }
+
+    #container {
+      display: flex;
+      flex-direction: row;
+      height: 100vh;
+      width: 100vw;
+    }
+
+    /* 🧠 Редактор */
+    #editor {
+      flex-grow: 1;
+      height: 100%;
+      width: 100%;
+      font-size: 14px;
+      position: relative;
+    }
+
+    /* 📋 Панель праворуч */
+    #sidebar {
+      width: 320px;
+      background-color: #252526;
+      color: #ddd;
+      padding: 15px;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: flex-start;
+      box-shadow: -2px 0 5px rgba(0,0,0,0.4);
+    }
+
+    input, button {
+      width: 100%;
+      margin-bottom: 10px;
+      padding: 8px;
+      font-size: 14px;
+      border: none;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+
+    input {
+      background-color: #333;
+      color: #eee;
+    }
+
+    button {
+      background-color: #0e639c;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+    }
+
+    button:hover {
+      background-color: #1177bb;
+    }
+
+    h2 {
+      margin-top: 0;
+      font-size: 18px;
+      border-bottom: 1px solid #444;
+      padding-bottom: 5px;
+    }
+
+    #ftpStatus {
+      margin-top: 8px;
+      font-size: 0.9em;
+      color: #9cdcfe;
+      word-wrap: break-word;
+    }
+
+    #fileList {
+      list-style: none;
+      padding-left: 0;
+      max-height: 180px;
+      overflow-y: auto;
+      background-color: #1f1f1f;
+      border: 1px solid #333;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    #fileList li {
+      padding: 5px 10px;
+      border-bottom: 1px solid #333;
+      cursor: pointer;
+    }
+
+    #fileList li:hover {
+      background-color: #333;
+    }
+  </style>
+
+  <!-- Ace Editor CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js"></script>
+</head>
+<body>
+  <div id="container">
+    <div id="editor">-- Write your Lua code here</div>
+
+    <div id="sidebar">
+      <h2>Lua Editor</h2>
+      <input type="text" id="fileName" value="program.lua" placeholder="Назва файлу">
+
+      <!-- 📂 Локальні дії -->
+      <button id="loadBtn">📂 Завантажити файл</button>
+      <input type="file" id="fileInput" accept=".lua,.txt" style="display: none;">
+      <button id="saveBtn">💾 Зберегти локально</button>
+
+      <!-- 📤 Вивантаження -->
+      <h2>📤 Вивантаження</h2>
+      <input type="number" id="compNumber" placeholder="Номер комп'ютера (наприклад, 154)">
+      <button id="uploadBtn">Вивантажити на сервер</button>
+      <p id="ftpStatus"></p>
+
+      <!-- 📁 Переглядач файлів -->
+      <h2>📁 Файли на сервері</h2>
+      <button id="refreshFilesBtn">🔄 Отримати список</button>
+      <ul id="fileList"><li style="color:#777;">(немає даних)</li></ul>
+    </div>
+  </div>
+
+  <script>
+    let editor;
+
+    window.onload = function() {
+      // 🧩 Ініціалізація Ace Editor
+      editor = ace.edit("editor");
+      editor.setTheme("ace/theme/monokai");
+      editor.session.setMode("ace/mode/lua");
+      editor.setShowPrintMargin(false);
+      editor.setOptions({
+        fontSize: "14px",
+        showLineNumbers: true,
+        showGutter: true,
+        highlightActiveLine: true,
+        wrap: true,
+      });
+
+      // 💾 Зберегти локально
+      document.getElementById("saveBtn").onclick = function() {
+        const code = editor.getValue();
+        const fileName = document.getElementById("fileName").value || "program.lua";
+
+        const blob = new Blob([code], { type: "text/plain" });
+        const a = document.createElement("a");
+        a.href = URL.createObjectURL(blob);
+        a.download = fileName;
+        a.click();
+      };
+
+      // 📂 Завантажити файл
+      const fileInput = document.getElementById("fileInput");
+      document.getElementById("loadBtn").onclick = () => fileInput.click();
+
+      fileInput.addEventListener("change", (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (e) => {
+          editor.setValue(e.target.result, -1);
+          document.getElementById("fileName").value = file.name;
+        };
+        reader.readAsText(file, "UTF-8");
+      });
+
+      // 📤 Вивантажити на сервер
+      document.getElementById("uploadBtn").onclick = function uploadToFtp() {
+        const code = editor.getValue().trim();
+        const comp = document.getElementById("compNumber").value.trim();
+        const fileName = document.getElementById("fileName").value.trim();
+        const status = document.getElementById("ftpStatus");
+
+        if (!code || !comp || !fileName) {
+          status.innerText = "⛔ Заповніть всі поля.";
+          return;
+        }
+
+        status.innerText = "⏳ Відправлення...";
+
+        fetch("upload.php", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code, comp, fileName })
+        })
+        .then(res => res.text())
+        .then(result => status.innerText = "✅ " + result)
+        .catch(err => status.innerText = "❌ Помилка: " + err.message);
+      };
+
+      // 📁 Отримати список файлів
+      const fileList = document.getElementById("fileList");
+      document.getElementById("refreshFilesBtn").onclick = function() {
+        const comp = document.getElementById("compNumber").value.trim();
+        if (!comp) return alert("Вкажіть номер комп'ютера.");
+
+        fileList.innerHTML = "<li>⏳ Завантаження...</li>";
+
+        fetch("list_files.php", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ comp })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data.error) {
+            fileList.innerHTML = `<li style='color:red;'>${data.error}</li>`;
+            return;
+          }
+          if (!data.files || data.files.length === 0) {
+            fileList.innerHTML = "<li>(порожньо)</li>";
+            return;
+          }
+
+          fileList.innerHTML = "";
+          data.files.forEach(f => {
+            const li = document.createElement("li");
+            li.textContent = f;
+            li.onclick = () => loadFileFromServer(comp, f);
+            fileList.appendChild(li);
+          });
+        })
+        .catch(err => {
+          fileList.innerHTML = `<li style='color:red;'>Помилка: ${err.message}</li>`;
+        });
+      };
+    };
+
+    // 📥 Завантажити вибраний файл у редактор
+    function loadFileFromServer(comp, file) {
+      fetch("list_files.php", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ comp, file })
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.error) return alert(data.error);
+        editor.setValue(data.content, -1);
+        document.getElementById("fileName").value = data.name;
+      })
+      .catch(err => alert("❌ Помилка: " + err.message));
+    }
+  </script>
+</body>
+</html>
