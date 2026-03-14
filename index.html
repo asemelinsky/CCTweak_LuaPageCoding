@@ -639,7 +639,7 @@
       if (!comp) return;
       const fileList = document.getElementById("fileList");
       fileList.innerHTML = "<li>⏳ Завантаження...</li>";
-      fetch("list_files.php", {
+      fetch("/api/list_files", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ comp })
@@ -676,7 +676,7 @@
     // Видалити файл з сервера
     function deleteFileFromServer(comp, file) {
       if (!confirm(`Видалити "${file}" з сервера?`)) return;
-      fetch("list_files.php", {
+      fetch("/api/list_files", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ comp, file, action: "delete" })
@@ -1087,7 +1087,7 @@
 
         setStatus("⏳ Відправлення...", "loading");
 
-        fetch("upload.php", {
+        fetch("/api/upload", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ code, comp, fileName })
@@ -1134,7 +1134,7 @@
 
     // 📥 Завантажити вибраний файл у редактор
     function loadFileFromServer(comp, file) {
-      fetch("list_files.php", {
+      fetch("/api/list_files", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ comp, file })

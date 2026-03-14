@@ -1,0 +1,421 @@
+<!doctype html>
+<html lang="uk">
+<head>
+  <meta charset="utf-8" />
+  <title>Minecraft Server — Інформація</title>
+  <style>
+    html, body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #1e1e1e;
+      color: #ddd;
+      min-height: 100vh;
+    }
+
+    .topbar {
+      background-color: #2d2d30;
+      border-bottom: 2px solid #444;
+      padding: 12px 24px;
+      display: flex;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .topbar h1 {
+      margin: 0;
+      font-size: 18px;
+      color: #4ec9b0;
+    }
+
+    .topbar a {
+      color: #9cdcfe;
+      text-decoration: none;
+      font-size: 13px;
+      padding: 4px 10px;
+      border: 1px solid #555;
+      border-radius: 4px;
+    }
+
+    .topbar a:hover {
+      background-color: #3c3c3c;
+    }
+
+    .container {
+      max-width: 900px;
+      margin: 30px auto;
+      padding: 0 24px 60px;
+    }
+
+    .page-title {
+      font-size: 22px;
+      color: #dcdcaa;
+      margin-bottom: 6px;
+    }
+
+    .page-subtitle {
+      color: #777;
+      font-size: 13px;
+      margin-bottom: 32px;
+    }
+
+    .badge-success {
+      display: inline-block;
+      background: rgba(78,201,176,0.15);
+      border: 1px solid rgba(78,201,176,0.4);
+      color: #4ec9b0;
+      padding: 2px 10px;
+      border-radius: 12px;
+      font-size: 12px;
+      margin-left: 10px;
+      vertical-align: middle;
+    }
+
+    section {
+      margin-bottom: 28px;
+    }
+
+    h2 {
+      font-size: 15px;
+      color: #9cdcfe;
+      border-bottom: 1px solid #333;
+      padding-bottom: 6px;
+      margin-bottom: 14px;
+      margin-top: 0;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+    }
+
+    table td {
+      padding: 7px 10px;
+      border-bottom: 1px solid #2a2a2a;
+    }
+
+    table td:first-child {
+      color: #888;
+      width: 200px;
+      white-space: nowrap;
+    }
+
+    table td:last-child {
+      color: #eee;
+      font-family: 'Consolas', monospace;
+    }
+
+    table tr:hover td {
+      background-color: #252525;
+    }
+
+    .connect-box {
+      background-color: #252526;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 18px 20px;
+    }
+
+    .connect-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .connect-item:last-child {
+      margin-bottom: 0;
+    }
+
+    .connect-label {
+      color: #888;
+      font-size: 13px;
+      width: 160px;
+      flex-shrink: 0;
+    }
+
+    .connect-value {
+      font-family: 'Consolas', monospace;
+      font-size: 14px;
+      color: #4ec9b0;
+      background: rgba(78,201,176,0.08);
+      padding: 4px 12px;
+      border-radius: 4px;
+      border: 1px solid rgba(78,201,176,0.2);
+      cursor: pointer;
+      user-select: all;
+    }
+
+    .connect-value:hover {
+      background: rgba(78,201,176,0.15);
+    }
+
+    .tag {
+      display: inline-block;
+      background: #2d2d30;
+      border: 1px solid #444;
+      color: #ce9178;
+      padding: 3px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      margin: 2px 3px 2px 0;
+      font-family: 'Consolas', monospace;
+    }
+
+    .problem-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .problem-list li {
+      background: #252526;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 12px 14px;
+      margin-bottom: 10px;
+    }
+
+    .problem-list li .prob-title {
+      color: #f48771;
+      font-size: 13px;
+      font-weight: bold;
+      margin-bottom: 4px;
+    }
+
+    .problem-list li .prob-fix {
+      color: #4ec9b0;
+      font-size: 13px;
+    }
+
+    .problem-list li .prob-fix::before {
+      content: "→ ";
+      color: #555;
+    }
+
+    .stats-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .stat-card {
+      background: #252526;
+      border: 1px solid #333;
+      border-radius: 6px;
+      padding: 14px 18px;
+      flex: 1;
+      min-width: 140px;
+      text-align: center;
+    }
+
+    .stat-card .stat-val {
+      font-size: 24px;
+      font-weight: bold;
+      color: #dcdcaa;
+      font-family: 'Consolas', monospace;
+    }
+
+    .stat-card .stat-lbl {
+      font-size: 12px;
+      color: #777;
+      margin-top: 4px;
+    }
+
+    .migration-note {
+      background: rgba(220,150,50,0.08);
+      border: 1px solid rgba(220,150,50,0.3);
+      border-radius: 6px;
+      padding: 12px 16px;
+      font-size: 13px;
+      color: #dcdcaa;
+      margin-bottom: 28px;
+    }
+
+    .migration-note strong {
+      color: #f4b771;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="topbar">
+    <h1>🎮 Minecraft Server</h1>
+    <a href="index.html">← Lua Editor</a>
+  </div>
+
+  <div class="container">
+
+    <div class="page-title">
+      Інформація про сервер
+      <span class="badge-success">✅ Online</span>
+    </div>
+    <div class="page-subtitle">Мігровано 2026-03-13 · Hetzner VPS, Nuremberg</div>
+
+    <div class="migration-note">
+      <strong>Міграція завершена.</strong> Сервер перенесено з godlike.host на власний VPS Hetzner.
+      Нова адреса: <strong>46.225.227.42:25565</strong>
+    </div>
+
+    <!-- Характеристики -->
+    <section>
+      <h2>Характеристики сервера</h2>
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-val">4</div>
+          <div class="stat-lbl">vCPU</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">8 GB</div>
+          <div class="stat-lbl">RAM</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">160 GB</div>
+          <div class="stat-lbl">NVMe SSD</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">~11с</div>
+          <div class="stat-lbl">Час запуску</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">27</div>
+          <div class="stat-lbl">Модів</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Підключення -->
+    <section>
+      <h2>Підключення</h2>
+      <div class="connect-box">
+        <div class="connect-item">
+          <span class="connect-label">Minecraft</span>
+          <span class="connect-value" title="Клікни щоб скопіювати">46.225.227.42:25565</span>
+        </div>
+        <div class="connect-item">
+          <span class="connect-label">Pterodactyl Panel</span>
+          <span class="connect-value">http://46.225.227.42</span>
+        </div>
+        <div class="connect-item">
+          <span class="connect-label">SFTP (Wings)</span>
+          <span class="connect-value">46.225.227.42:2022</span>
+        </div>
+        <div class="connect-item">
+          <span class="connect-label">SFTP User</span>
+          <span class="connect-value">admin.3c4202c1</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Встановлено -->
+    <section>
+      <h2>Встановлено</h2>
+      <table>
+        <tr><td>OS</td><td>Ubuntu 24.04 LTS</td></tr>
+        <tr><td>Java</td><td>OpenJDK 21.0.10</td></tr>
+        <tr><td>Docker</td><td>29.3.0</td></tr>
+        <tr><td>Панель</td><td>Pterodactyl Panel + Wings v1.12.1</td></tr>
+        <tr><td>Сервер</td><td>Arclight 1.20.1-1.0.6 (Forge + Bukkit гібрид)</td></tr>
+        <tr><td>Firewall</td><td>UFW — порти: 22, 80, 443, 25565, 8080, 2022</td></tr>
+      </table>
+    </section>
+
+    <!-- Моди -->
+    <section>
+      <h2>Моди (27)</h2>
+      <div>
+        <span class="tag">alexsmobs</span>
+        <span class="tag">architectury</span>
+        <span class="tag">ava</span>
+        <span class="tag">car</span>
+        <span class="tag">cc-tweaked</span>
+        <span class="tag">citadel</span>
+        <span class="tag">Cobblemon</span>
+        <span class="tag">craftedcore</span>
+        <span class="tag">create</span>
+        <span class="tag">curios</span>
+        <span class="tag">FarmersDelight</span>
+        <span class="tag">ftbchunks</span>
+        <span class="tag">ftbteams</span>
+        <span class="tag">ftblibrary</span>
+        <span class="tag">kotlin-for-forge</span>
+        <span class="tag">mutantmonsters</span>
+        <span class="tag">puzzleslib</span>
+        <span class="tag">skinchanger</span>
+        <span class="tag">spore</span>
+        <span class="tag">walkers</span>
+        <span class="tag">worldedit</span>
+        <span class="tag">+ залежності</span>
+      </div>
+    </section>
+
+    <!-- Плагіни -->
+    <section>
+      <h2>Плагіни (Bukkit)</h2>
+      <div>
+        <span class="tag">CoreProtect</span>
+        <span class="tag">VisualModder</span>
+        <span class="tag">packetevents</span>
+      </div>
+    </section>
+
+    <!-- Проблеми та рішення -->
+    <section>
+      <h2>Проблеми під час міграції</h2>
+      <ul class="problem-list">
+        <li>
+          <div class="prob-title">Неправильний пароль root на VPS</div>
+          <div class="prob-fix">Reset Root Password через Hetzner Console</div>
+        </li>
+        <li>
+          <div class="prob-title">Pterodactyl p:environment:setup зависав (інтерактивний ввід)</div>
+          <div class="prob-fix">Налаштування .env вручну через sed напряму</div>
+        </li>
+        <li>
+          <div class="prob-title">Порт 2022 (SFTP Wings) заблокований</div>
+          <div class="prob-fix">ufw allow 2022/tcp — порт був відсутній у правилах</div>
+        </li>
+        <li>
+          <div class="prob-title">Сервер — Arclight, а не чистий Forge</div>
+          <div class="prob-fix">Завантажено arclight-forge-1.20.1-1.0.6.jar, оновлено SERVER_JARFILE в БД</div>
+        </li>
+        <li>
+          <div class="prob-title">Складна передача файлів (3 невдалі спроби)</div>
+          <div class="prob-fix">lftp mirror через SFTP — скопіювало world/ (6.4GB), mods/, plugins/, config/</div>
+        </li>
+        <li>
+          <div class="prob-title">Cobblemon Showdown — Cannot load module: './sim/battle-stream'</div>
+          <div class="prob-fix">Видалено стару showdown/ → Cobblemon розпакував її з JAR автоматично</div>
+        </li>
+      </ul>
+    </section>
+
+    <!-- Структура -->
+    <section>
+      <h2>Структура сервера</h2>
+      <table>
+        <tr><td>arclight-forge-1.20.1-1.0.6.jar</td><td>Головний jar</td></tr>
+        <tr><td>mods/ (27 файлів)</td><td>Forge моди</td></tr>
+        <tr><td>plugins/</td><td>CoreProtect, VisualModder, packetevents</td></tr>
+        <tr><td>world/ (6.4 GB)</td><td>DIM-1 (Nether), DIM1 (End) включно</td></tr>
+        <tr><td>config/</td><td>Конфіги модів</td></tr>
+      </table>
+    </section>
+
+  </div>
+
+  <script>
+    // Клік — копіювання в буфер
+    document.querySelectorAll('.connect-value').forEach(el => {
+      el.addEventListener('click', () => {
+        navigator.clipboard.writeText(el.textContent.trim()).then(() => {
+          const orig = el.textContent;
+          el.textContent = '✅ Скопійовано';
+          setTimeout(() => el.textContent = orig, 1500);
+        });
+      });
+    });
+  </script>
+
+</body>
+</html>
