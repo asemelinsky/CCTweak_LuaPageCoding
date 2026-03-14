@@ -53,10 +53,10 @@ if (!$comp || !$fileName || !$code) {
 }
 
 // Облікові дані: спроба взяти з ENV, інакше використовувати хардкод (як раніше)
-$host = getenv('SFTP_HOST') ?: 'wing79.panel.godlike.host';
+$host = getenv('SFTP_HOST') ?: '46.225.227.42';
 $port = getenv('SFTP_PORT') ?: 2022;
-$user = getenv('SFTP_USER') ?: '6qszhvg5.06b2a90e';
-$pass = getenv('SFTP_PASS') ?: 'qKAs2FBwt5Fx.QR';
+$user = getenv('SFTP_USER') ?: 'admin.3c4202c1';
+$pass = getenv('SFTP_PASS') ?: '';
 
 // Підключення SFTP
 $sftp = new SFTP($host, (int)$port);

@@ -1,0 +1,7 @@
+{
+  "version": 2,
+  "rewrites": [
+    { "source": "/upload.php", "destination": "/api/upload" },
+    { "source": "/list_files.php", "destination": "/api/list_files" }
+  ]
+}
