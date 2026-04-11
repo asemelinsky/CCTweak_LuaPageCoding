@@ -493,8 +493,8 @@ function toggleTheme() {
 
 // ==================== SERVER PROFILES ====================
 const BUILTIN_SERVERS = [
-  { id: "server1", name: "Server 1 (Forge 1.20.1)", host: "46.225.227.42", port: "2022", user: "admin.3c4202c1", pass: "", basePath: "world/computercraft/computer/" },
-  { id: "server2", name: "Server 2 (NeoForge 1.21.1)", host: "46.225.227.42", port: "2022", user: "admin.cfc9be31", pass: "", basePath: "world/computercraft/computer/" },
+  { id: "server1", name: "Server 1 (Forge 1.20.1)" },
+  { id: "server2", name: "Server 2 (NeoForge 1.21.1)" },
 ];
 const DEFAULT_SERVER = BUILTIN_SERVERS[0];
 const LOCAL_SERVER = { id: "local", name: "Локальний (мій ПК)" };
@@ -596,7 +596,9 @@ function editServer(id) {
 function getServerPayload() {
   const s = getActiveServer();
   if (s.id === "local") return {};
-  return { server: { id: s.id, host: s.host, port: s.port, user: s.user, pass: s.pass, basePath: s.basePath } };
+  const builtin = BUILTIN_SERVERS.find(b => b.id === s.id);
+  if (builtin) return { serverId: s.id };
+  return { server: { host: s.host, port: s.port, user: s.user, pass: s.pass, basePath: s.basePath } };
 }
 
 // ==================== LOCAL MODE (File System Access API) ====================

@@ -52,30 +52,22 @@ if (!$comp || !$fileName || !$code) {
     exit;
 }
 
-// Вбудовані сервери (паролі з ENV)
-$builtinServers = [
-    'server1' => ['host' => '46.225.227.42', 'port' => 2022, 'user' => 'admin.3c4202c1'],
-    'server2' => ['host' => '46.225.227.42', 'port' => 2022, 'user' => 'admin.cfc9be31'],
-];
-
+// Credentials from ENV only — no hardcoded values
+$serverId = $data['serverId'] ?? '';
 $serverData = $data['server'] ?? null;
-$serverId = $serverData['id'] ?? '';
 
 if ($serverData && !empty($serverData['host'])) {
-    // Користувацький або вбудований сервер з даними від клієнта
+    // Custom server — credentials from request
     $host = $serverData['host'];
     $port = (int)($serverData['port'] ?? 2022);
     $user = $serverData['user'] ?? '';
     $pass = $serverData['pass'] ?? '';
-    // Для вбудованих серверів пароль беремо з ENV
-    if (isset($builtinServers[$serverId]) && empty($pass)) {
-        $pass = getenv('SFTP_PASS') ?: '';
-    }
 } else {
-    // Fallback на ENV/дефолт (Server 1)
-    $host = getenv('SFTP_HOST') ?: '46.225.227.42';
+    // Builtin server — all from ENV
+    $host = getenv('SFTP_HOST') ?: '';
     $port = getenv('SFTP_PORT') ?: 2022;
-    $user = getenv('SFTP_USER') ?: 'admin.3c4202c1';
+    $userEnv = ($serverId === 'server2') ? 'SFTP_USER_2' : 'SFTP_USER_1';
+    $user = getenv($userEnv) ?: '';
     $pass = getenv('SFTP_PASS') ?: '';
 }
 

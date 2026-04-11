@@ -17,34 +17,28 @@ $file = preg_replace("/[^a-zA-Z0-9_\-\.]/", "", $data['file'] ?? "");
 
 if (!$comp) error_exit("Номер комп’ютера не вказано.");
 
-// Вбудовані сервери
-$builtinServers = [
-    'server1' => ['host' => '46.225.227.42', 'port' => 2022, 'user' => 'admin.3c4202c1'],
-    'server2' => ['host' => '46.225.227.42', 'port' => 2022, 'user' => 'admin.cfc9be31'],
-];
-
+// Credentials from ENV only — no hardcoded values
+$serverId = $data['serverId'] ?? '';
 $serverData = $data['server'] ?? null;
-$serverId = $serverData['id'] ?? '';
 
 if ($serverData && !empty($serverData['host'])) {
     $host = $serverData['host'];
     $port = (int)($serverData['port'] ?? 2022);
     $user = $serverData['user'] ?? '';
     $pass = $serverData['pass'] ?? '';
-    if (isset($builtinServers[$serverId]) && empty($pass)) {
-        $pass = getenv('SFTP_PASS') ?: '';
-    }
+    $basePath = ($serverData['basePath'] ?? '') ?: 'world/computercraft/computer/';
 } else {
-    $host = getenv('SFTP_HOST') ?: '46.225.227.42';
+    $host = getenv('SFTP_HOST') ?: '';
     $port = getenv('SFTP_PORT') ?: 2022;
-    $user = getenv('SFTP_USER') ?: 'admin.3c4202c1';
+    $userEnv = ($serverId === 'server2') ? 'SFTP_USER_2' : 'SFTP_USER_1';
+    $user = getenv($userEnv) ?: '';
     $pass = getenv('SFTP_PASS') ?: '';
+    $basePath = 'world/computercraft/computer/';
 }
 
 $sftp = new SFTP($host, $port);
 if (!$sftp->login($user, $pass)) error_exit("SFTP логін не вдався.");
 
-$basePath = ($serverData['basePath'] ?? '') ?: 'world/computercraft/computer/';
 $dir = rtrim($basePath, '/') . "/$comp";
 
 $action = $data['action'] ?? '';

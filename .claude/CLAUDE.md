@@ -5,24 +5,25 @@
 Пишеш код → тестуєш у браузері → надсилаєш на Minecraft-сервер.
 
 ## Хостинг і деплой
-- **Сайт:** bajka.pp.ua/minecraft/lua/
-- **FTP:** soyldohv@b5.s-host.com.ua (порт 21)
-- **Деплой:** автоматично при `git push master` → GitHub Actions (~25 сек)
+- **Сайт:** Vercel (проєкт: cctweaked-lua-editor)
+- **Деплой:** автоматично при `git push master` → Vercel
 - **GitHub:** https://github.com/asemelinsky/CCTweak_LuaPageCoding
+- **Стара сторінка:** bajka.pp.ua/minecraft/lua/ — НЕ використовувати, НЕ деплоїти туди
 
-## Дві різні SFTP/FTP точки (не плутати!)
-| Призначення | Протокол | Хост | Що там |
-|---|---|---|---|
-| Веб-файли (деплой) | FTP | b5.s-host.com.ua:21 | index.html, upload.php, list_files.php |
-| Minecraft Server 1 (Forge 1.20.1) | SFTP | 46.225.227.42:2022, user: admin.3c4202c1 | world/computercraft/computer/{N}/*.lua |
-| Minecraft Server 2 (NeoForge 1.21.1) | SFTP | 46.225.227.42:2022, user: admin.cfc9be31 | world/computercraft/computer/{N}/*.lua |
+## Minecraft SFTP сервери
+| Призначення | Хост | Порт | Юзер | Шлях |
+|---|---|---|---|---|
+| Server 1 (Forge 1.20.1) | 46.225.227.42 | 2022 | admin.3c4202c1 | world/computercraft/computer/{N}/*.lua |
+| Server 2 (NeoForge 1.21.1) | 46.225.227.42 | 2022 | admin.cfc9be31 | world/computercraft/computer/{N}/*.lua |
 
 ## Структура проєкту
 ```
 CCTweak_LuaPageCoding/
 ├── index.html              ← головний редактор (Ace Editor + симулятор)
-├── upload.php              ← SFTP-завантаження .lua на Minecraft-сервер
-├── list_files.php          ← перегляд файлів на сервері
+├── upload.php              ← (застаріло, для bajka) SFTP-завантаження
+├── list_files.php          ← (застаріло, для bajka) перегляд файлів
+├── api/upload.js           ← Vercel serverless — SFTP-завантаження .lua
+├── api/list_files.js       ← Vercel serverless — перегляд/завантаження/видалення файлів
 ├── turtle_completions.js   ← застарілий completers (completions вже в index.html)
 ├── index_v1–v5.html        ← архів старих версій
 ├── docs/                   ← звіти про роботу (YYYY-MM-DD.md)
@@ -42,5 +43,5 @@ CCTweak_LuaPageCoding/
 
 ## Правила
 - Не комітити паролі та credentials у файли
-- Деплой тільки через git push (не вручну по FTP)
+- Деплой тільки через git push на Vercel (НЕ на bajka.pp.ua — це стара сторінка)
 - Звіти зберігати в docs/ через skill /daily-report

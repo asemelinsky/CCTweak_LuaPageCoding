@@ -1,9 +1,45 @@
 const SftpClient = require('ssh2-sftp-client');
 
+function getSftpConfig(body) {
+  const { serverId, server } = body;
+
+  // Builtin server — all credentials from env
+  if (serverId) {
+    const userEnv = serverId === 'server2' ? 'SFTP_USER_2' : 'SFTP_USER_1';
+    return {
+      host: process.env.SFTP_HOST,
+      port: parseInt(process.env.SFTP_PORT || '2022'),
+      username: process.env[userEnv],
+      password: process.env.SFTP_PASS,
+      basePath: 'world/computercraft/computer/',
+    };
+  }
+
+  // Custom server — credentials from request
+  if (server && server.host) {
+    return {
+      host: server.host,
+      port: parseInt(server.port || '2022'),
+      username: server.user,
+      password: server.pass,
+      basePath: server.basePath || 'world/computercraft/computer/',
+    };
+  }
+
+  // Fallback — env defaults (server1)
+  return {
+    host: process.env.SFTP_HOST,
+    port: parseInt(process.env.SFTP_PORT || '2022'),
+    username: process.env.SFTP_USER_1,
+    password: process.env.SFTP_PASS,
+    basePath: 'world/computercraft/computer/',
+  };
+}
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') return res.status(405).end();
 
-  const { code, comp, fileName, server } = req.body;
+  const { code, comp, fileName } = req.body;
 
   if (!code || !comp || !fileName) {
     return res.status(400).send('⛔ Обов\'язкові поля відсутні або порожні.');
@@ -12,29 +48,7 @@ export default async function handler(req, res) {
   const compClean = comp.replace(/[^0-9]/g, '');
   const fileClean = fileName.replace(/[^a-zA-Z0-9_\-\.]/g, '');
 
-  const builtinUsers = {
-    server1: 'admin.3c4202c1',
-    server2: 'admin.cfc9be31',
-  };
-
-  let sftpConfig;
-  if (server && server.host) {
-    sftpConfig = {
-      host: server.host,
-      port: parseInt(server.port || '2022'),
-      username: server.user,
-      password: server.pass || (builtinUsers[server.id] ? process.env.SFTP_PASS : ''),
-    };
-  } else {
-    sftpConfig = {
-      host: process.env.SFTP_HOST || '46.225.227.42',
-      port: parseInt(process.env.SFTP_PORT || '2022'),
-      username: process.env.SFTP_USER || 'admin.3c4202c1',
-      password: process.env.SFTP_PASS,
-    };
-  }
-
-  const basePath = (server && server.basePath) || 'world/computercraft/computer/';
+  const { basePath, ...sftpConfig } = getSftpConfig(req.body);
 
   const sftp = new SftpClient();
 
