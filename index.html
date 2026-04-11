@@ -377,6 +377,10 @@
           <select id="serverSelect"></select>
           <button id="serverManageBtn" title="Керувати серверами">+</button>
         </div>
+        <div id="localFolderSection" style="display:none;">
+          <button id="pickFolderBtn" class="btn-secondary" style="width:100%;margin-bottom:4px;">Обрати папку ComputerCraft</button>
+          <div id="localFolderStatus" style="font-size:12px;color:var(--text-dim);margin-bottom:6px;word-break:break-all;"></div>
+        </div>
         <input type="number" id="compNumber" placeholder="Номер комп'ютера (202)">
         <button id="uploadBtn" title="Ctrl+Shift+S">Вивантажити на сервер</button>
         <div id="ftpStatus"></div>
@@ -409,7 +413,19 @@
       <hr style="border-color:var(--border-dim);margin:12px 0;">
       <h3 style="font-size:14px;">Додати сервер</h3>
       <details style="margin-bottom:10px;background:var(--bg-card);border:1px solid var(--border-dim);border-radius:6px;padding:8px 12px;font-size:13px;color:var(--text-dim);line-height:1.6;">
-        <summary style="cursor:pointer;color:var(--text-main);font-size:13px;">Як підключити свій сервер? (інструкція)</summary>
+        <summary style="cursor:pointer;color:var(--text-main);font-size:13px;">Як зберігати файли на свій ПК? (локальний режим)</summary>
+        <div style="margin-top:8px;">
+          <b>Якщо Minecraft стоїть на твоєму комп'ютері</b> — SFTP не потрібен!<br><br>
+          <b>1.</b> Обери <b>"Локальний (мій ПК)"</b> у списку серверів зверху.<br>
+          <b>2.</b> Натисни <b>"Обрати папку ComputerCraft"</b> і знайди папку:<br>
+          &nbsp;&nbsp;• <b>Свій світ:</b> <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">.minecraft/saves/Назва_світу/computercraft/computer/</code><br>
+          &nbsp;&nbsp;• <b>Локальний сервер:</b> <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">папка_сервера/world/computercraft/computer/</code><br>
+          <b>3.</b> Вкажи <b>номер комп'ютера</b> (той що в грі) і натисни <b>"Вивантажити"</b>.<br>
+          <b>4.</b> Файл з'явиться в грі! Працює тільки в <b>Chrome</b> або <b>Edge</b>.
+        </div>
+      </details>
+      <details style="margin-bottom:10px;background:var(--bg-card);border:1px solid var(--border-dim);border-radius:6px;padding:8px 12px;font-size:13px;color:var(--text-dim);line-height:1.6;">
+        <summary style="cursor:pointer;color:var(--text-main);font-size:13px;">Як підключити віддалений сервер? (SFTP)</summary>
         <div style="margin-top:8px;">
           <b>1.</b> Тобі потрібен Minecraft-сервер з модом <b>CC: Tweaked</b> і доступом через <b>SFTP</b>.<br>
           <b>2.</b> Дізнайся у того, хто налаштовував сервер:<br>
@@ -477,6 +493,10 @@ function toggleTheme() {
 
 // ==================== SERVER PROFILES ====================
 const DEFAULT_SERVER = { id: "default", name: "Основний (Hetzner)", host: "", port: "", user: "", pass: "", basePath: "world/computercraft/computer/" };
+const LOCAL_SERVER = { id: "local", name: "Локальний (мій ПК)" };
+let localDirHandle = null;
+
+function isLocalMode() { return getActiveServerId() === "local"; }
 
 function getServers() {
   return JSON.parse(localStorage.getItem("lua_servers") || "[]");
@@ -488,6 +508,7 @@ function setActiveServerId(id) { localStorage.setItem("lua_active_server", id); 
 function getActiveServer() {
   const id = getActiveServerId();
   if (id === "default") return DEFAULT_SERVER;
+  if (id === "local") return LOCAL_SERVER;
   return getServers().find(s => s.id === id) || DEFAULT_SERVER;
 }
 
@@ -495,10 +516,12 @@ function renderServerSelect() {
   const sel = document.getElementById("serverSelect");
   const active = getActiveServerId();
   sel.innerHTML = `<option value="default"${active === "default" ? " selected" : ""}>Основний (Hetzner)</option>`;
+  sel.innerHTML += `<option value="local"${active === "local" ? " selected" : ""}>Локальний (мій ПК)</option>`;
   getServers().forEach(s => {
     sel.innerHTML += `<option value="${s.id}"${s.id === active ? " selected" : ""}>${s.name}</option>`;
   });
   updateStatusServer();
+  updateLocalUI();
 }
 
 function updateStatusServer() {
@@ -568,7 +591,89 @@ function editServer(id) {
 function getServerPayload() {
   const s = getActiveServer();
   if (s.id === "default") return {};
+  if (s.id === "local") return {};
   return { server: { host: s.host, port: s.port, user: s.user, pass: s.pass, basePath: s.basePath } };
+}
+
+// ==================== LOCAL MODE (File System Access API) ====================
+function updateLocalUI() {
+  const section = document.getElementById("localFolderSection");
+  const status = document.getElementById("localFolderStatus");
+  if (isLocalMode()) {
+    section.style.display = "block";
+    if (localDirHandle) {
+      status.textContent = "Папка: " + localDirHandle.name;
+      status.style.color = "var(--text-accent)";
+    } else {
+      status.textContent = "Папку не обрано";
+      status.style.color = "var(--text-dim)";
+    }
+  } else {
+    section.style.display = "none";
+  }
+}
+
+async function pickLocalFolder() {
+  if (!('showDirectoryPicker' in window)) {
+    alert("Ваш браузер не підтримує вибір папок. Використовуйте Chrome або Edge.");
+    return;
+  }
+  try {
+    localDirHandle = await window.showDirectoryPicker({ mode: "readwrite" });
+    updateLocalUI();
+    setStatus("Папку обрано: " + localDirHandle.name, "success");
+  } catch (e) {
+    if (e.name !== "AbortError") alert("Помилка: " + e.message);
+  }
+}
+
+async function getLocalCompDir(comp, create) {
+  if (!localDirHandle) { alert("Спочатку оберіть папку ComputerCraft."); return null; }
+  try {
+    return await localDirHandle.getDirectoryHandle(String(comp), { create: !!create });
+  } catch (e) {
+    if (e.name === "NotFoundError") {
+      alert("Папка комп'ютера #" + comp + " не знайдена. Перевірте номер або створіть її.");
+      return null;
+    }
+    throw e;
+  }
+}
+
+async function localUpload(code, comp, fileName) {
+  const dir = await getLocalCompDir(comp, true);
+  if (!dir) return;
+  const fileHandle = await dir.getFileHandle(fileName, { create: true });
+  const writable = await fileHandle.createWritable();
+  await writable.write(code);
+  await writable.close();
+  setStatus("Збережено локально: " + fileName, "success");
+  currentServerFile = fileName;
+  refreshFileList();
+}
+
+async function localListFiles(comp) {
+  const dir = await getLocalCompDir(comp, false);
+  if (!dir) return [];
+  const files = [];
+  for await (const entry of dir.values()) {
+    if (entry.kind === "file") files.push(entry.name);
+  }
+  return files.sort();
+}
+
+async function localLoadFile(comp, fileName) {
+  const dir = await getLocalCompDir(comp, false);
+  if (!dir) return null;
+  const fileHandle = await dir.getFileHandle(fileName);
+  const file = await fileHandle.getFile();
+  return await file.text();
+}
+
+async function localDeleteFile(comp, fileName) {
+  const dir = await getLocalCompDir(comp, false);
+  if (!dir) return;
+  await dir.removeEntry(fileName);
 }
 
 // ==================== MODALS ====================
@@ -1283,6 +1388,14 @@ function refreshFileList() {
   const fileList = document.getElementById("fileList");
   fileList.innerHTML = "<li>Завантаження...</li>";
 
+  if (isLocalMode()) {
+    localListFiles(comp).then(files => {
+      if (!files.length) { fileList.innerHTML = "<li>(порожньо)</li>"; return; }
+      renderFileListItems(fileList, files, comp);
+    }).catch(err => { fileList.innerHTML = `<li style="color:var(--text-red);">Помилка: ${err.message}</li>`; });
+    return;
+  }
+
   const body = { comp, ...getServerPayload() };
 
   fetch("/api/list_files", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) })
@@ -1290,28 +1403,44 @@ function refreshFileList() {
   .then(data => {
     if (data.error) { fileList.innerHTML = `<li style="color:var(--text-red);">${data.error}</li>`; return; }
     if (!data.files || !data.files.length) { fileList.innerHTML = "<li>(порожньо)</li>"; return; }
-    fileList.innerHTML = "";
-    data.files.forEach(f => {
-      const li = document.createElement("li");
-      if (f === currentServerFile) li.classList.add("active");
-      const nameSpan = document.createElement("span");
-      nameSpan.className = "file-name";
-      nameSpan.textContent = f;
-      nameSpan.onclick = () => loadFileFromServer(comp, f);
-      const delBtn = document.createElement("button");
-      delBtn.className = "file-delete-btn";
-      delBtn.textContent = "\u00d7";
-      delBtn.title = "Видалити";
-      delBtn.onclick = (e) => { e.stopPropagation(); deleteFileFromServer(comp, f); };
-      li.appendChild(nameSpan);
-      li.appendChild(delBtn);
-      fileList.appendChild(li);
-    });
+    renderFileListItems(fileList, data.files, comp);
   })
   .catch(err => { fileList.innerHTML = `<li style="color:var(--text-red);">Помилка: ${err.message}</li>`; });
 }
 
+function renderFileListItems(fileList, files, comp) {
+  fileList.innerHTML = "";
+  files.forEach(f => {
+    const li = document.createElement("li");
+    if (f === currentServerFile) li.classList.add("active");
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "file-name";
+    nameSpan.textContent = f;
+    nameSpan.onclick = () => loadFileFromServer(comp, f);
+    const delBtn = document.createElement("button");
+    delBtn.className = "file-delete-btn";
+    delBtn.textContent = "\u00d7";
+    delBtn.title = "Видалити";
+    delBtn.onclick = (e) => { e.stopPropagation(); deleteFileFromServer(comp, f); };
+    li.appendChild(nameSpan);
+    li.appendChild(delBtn);
+    fileList.appendChild(li);
+  });
+}
+
 function loadFileFromServer(comp, file) {
+  if (isLocalMode()) {
+    localLoadFile(comp, file).then(content => {
+      if (content === null) return;
+      editor.setValue(content, -1);
+      document.getElementById("fileName").value = file;
+      syncTabName(file);
+      currentServerFile = file;
+      refreshFileList();
+    }).catch(err => alert("Помилка: " + err.message));
+    return;
+  }
+
   const body = { comp, file, ...getServerPayload() };
   fetch("/api/list_files", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) })
   .then(r => r.json())
@@ -1327,7 +1456,16 @@ function loadFileFromServer(comp, file) {
 }
 
 function deleteFileFromServer(comp, file) {
-  if (!confirm(`Видалити "${file}" з сервера?`)) return;
+  if (!confirm(`Видалити "${file}"?`)) return;
+
+  if (isLocalMode()) {
+    localDeleteFile(comp, file).then(() => {
+      if (currentServerFile === file) currentServerFile = null;
+      refreshFileList();
+    }).catch(err => alert("Помилка: " + err.message));
+    return;
+  }
+
   const body = { comp, file, action: "delete", ...getServerPayload() };
   fetch("/api/list_files", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) })
   .then(r => r.json())
@@ -1346,6 +1484,13 @@ function uploadToServer() {
   if (!code || !comp || !fileName) { setStatus("Заповніть всі поля.", "error"); return; }
 
   localStorage.setItem("lua_comp", comp);
+
+  if (isLocalMode()) {
+    setStatus("Збереження локально...", "loading");
+    localUpload(code, comp, fileName).catch(err => setStatus("Помилка: " + err.message, "error"));
+    return;
+  }
+
   setStatus("Відправлення...", "loading");
 
   const body = { code, comp, fileName, ...getServerPayload() };
@@ -1463,7 +1608,8 @@ window.onload = function() {
 
   document.getElementById("snippetBtn").onclick = () => openModal("snippetModal");
   document.getElementById("serverManageBtn").onclick = () => { renderServerList(); openModal("serverModal"); };
-  document.getElementById("serverSelect").onchange = function() { setActiveServerId(this.value); updateStatusServer(); };
+  document.getElementById("serverSelect").onchange = function() { setActiveServerId(this.value); updateStatusServer(); updateLocalUI(); };
+  document.getElementById("pickFolderBtn").onclick = pickLocalFolder;
 
   // Save / Load
   document.getElementById("saveBtn").onclick = () => {
