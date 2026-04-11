@@ -408,6 +408,18 @@
       <div id="serverList"></div>
       <hr style="border-color:var(--border-dim);margin:12px 0;">
       <h3 style="font-size:14px;">Додати сервер</h3>
+      <details style="margin-bottom:10px;background:var(--bg-card);border:1px solid var(--border-dim);border-radius:6px;padding:8px 12px;font-size:13px;color:var(--text-dim);line-height:1.6;">
+        <summary style="cursor:pointer;color:var(--text-main);font-size:13px;">Як підключити свій сервер? (інструкція)</summary>
+        <div style="margin-top:8px;">
+          <b>1.</b> Тобі потрібен Minecraft-сервер з модом <b>CC: Tweaked</b> і доступом через <b>SFTP</b>.<br>
+          <b>2.</b> Дізнайся у того, хто налаштовував сервер:<br>
+          &nbsp;&nbsp;• <b>Хост</b> — IP-адреса сервера (наприклад <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">192.168.1.100</code>)<br>
+          &nbsp;&nbsp;• <b>Порт</b> — порт SFTP (зазвичай <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">2022</code>)<br>
+          &nbsp;&nbsp;• <b>Користувач</b> і <b>пароль</b> — логін/пароль для SFTP<br>
+          <b>3.</b> <b>Базовий шлях</b> — тека, де лежать файли комп'ютерів. Зазвичай це <code style="background:var(--bg-hover);padding:1px 4px;border-radius:3px;">world/computercraft/computer/</code> — не міняй, якщо не впевнений.<br>
+          <b>4.</b> Заповни форму нижче і натисни <b>Додати</b>. Готово!
+        </div>
+      </details>
       <label>Назва</label>
       <input type="text" id="srvName" placeholder="Локальний сервер">
       <label>Хост</label>
