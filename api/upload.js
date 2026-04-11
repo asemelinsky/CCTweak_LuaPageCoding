@@ -12,17 +12,27 @@ export default async function handler(req, res) {
   const compClean = comp.replace(/[^0-9]/g, '');
   const fileClean = fileName.replace(/[^a-zA-Z0-9_\-\.]/g, '');
 
-  const sftpConfig = server ? {
-    host: server.host,
-    port: parseInt(server.port || '2022'),
-    username: server.user,
-    password: server.pass,
-  } : {
-    host: process.env.SFTP_HOST || '46.225.227.42',
-    port: parseInt(process.env.SFTP_PORT || '2022'),
-    username: process.env.SFTP_USER || 'admin.3c4202c1',
-    password: process.env.SFTP_PASS,
+  const builtinUsers = {
+    server1: 'admin.3c4202c1',
+    server2: 'admin.cfc9be31',
   };
+
+  let sftpConfig;
+  if (server && server.host) {
+    sftpConfig = {
+      host: server.host,
+      port: parseInt(server.port || '2022'),
+      username: server.user,
+      password: server.pass || (builtinUsers[server.id] ? process.env.SFTP_PASS : ''),
+    };
+  } else {
+    sftpConfig = {
+      host: process.env.SFTP_HOST || '46.225.227.42',
+      port: parseInt(process.env.SFTP_PORT || '2022'),
+      username: process.env.SFTP_USER || 'admin.3c4202c1',
+      password: process.env.SFTP_PASS,
+    };
+  }
 
   const basePath = (server && server.basePath) || 'world/computercraft/computer/';
 

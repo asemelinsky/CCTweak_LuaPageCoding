@@ -52,11 +52,32 @@ if (!$comp || !$fileName || !$code) {
     exit;
 }
 
-// Облікові дані: спроба взяти з ENV, інакше використовувати хардкод (як раніше)
-$host = getenv('SFTP_HOST') ?: '46.225.227.42';
-$port = getenv('SFTP_PORT') ?: 2022;
-$user = getenv('SFTP_USER') ?: 'admin.3c4202c1';
-$pass = getenv('SFTP_PASS') ?: '';
+// Вбудовані сервери (паролі з ENV)
+$builtinServers = [
+    'server1' => ['host' => '46.225.227.42', 'port' => 2022, 'user' => 'admin.3c4202c1'],
+    'server2' => ['host' => '46.225.227.42', 'port' => 2022, 'user' => 'admin.cfc9be31'],
+];
+
+$serverData = $data['server'] ?? null;
+$serverId = $serverData['id'] ?? '';
+
+if ($serverData && !empty($serverData['host'])) {
+    // Користувацький або вбудований сервер з даними від клієнта
+    $host = $serverData['host'];
+    $port = (int)($serverData['port'] ?? 2022);
+    $user = $serverData['user'] ?? '';
+    $pass = $serverData['pass'] ?? '';
+    // Для вбудованих серверів пароль беремо з ENV
+    if (isset($builtinServers[$serverId]) && empty($pass)) {
+        $pass = getenv('SFTP_PASS') ?: '';
+    }
+} else {
+    // Fallback на ENV/дефолт (Server 1)
+    $host = getenv('SFTP_HOST') ?: '46.225.227.42';
+    $port = getenv('SFTP_PORT') ?: 2022;
+    $user = getenv('SFTP_USER') ?: 'admin.3c4202c1';
+    $pass = getenv('SFTP_PASS') ?: '';
+}
 
 // Підключення SFTP
 $sftp = new SFTP($host, (int)$port);
@@ -68,7 +89,8 @@ if (!$sftp->login($user, $pass)) {
 }
 
 // Віддалений шлях
-$dirPath = "world/computercraft/computer/$comp";
+$basePath = ($serverData['basePath'] ?? '') ?: 'world/computercraft/computer/';
+$dirPath = rtrim($basePath, '/') . "/$comp";
 $remoteFile = rtrim($dirPath, '/') . '/' . $fileName;
 
 // Якщо теки немає — створимо (рекурсивно)

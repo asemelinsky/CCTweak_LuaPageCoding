@@ -492,7 +492,11 @@ function toggleTheme() {
 }
 
 // ==================== SERVER PROFILES ====================
-const DEFAULT_SERVER = { id: "default", name: "Основний (Hetzner)", host: "", port: "", user: "", pass: "", basePath: "world/computercraft/computer/" };
+const BUILTIN_SERVERS = [
+  { id: "server1", name: "Server 1 (Forge 1.20.1)", host: "46.225.227.42", port: "2022", user: "admin.3c4202c1", pass: "", basePath: "world/computercraft/computer/" },
+  { id: "server2", name: "Server 2 (NeoForge 1.21.1)", host: "46.225.227.42", port: "2022", user: "admin.cfc9be31", pass: "", basePath: "world/computercraft/computer/" },
+];
+const DEFAULT_SERVER = BUILTIN_SERVERS[0];
 const LOCAL_SERVER = { id: "local", name: "Локальний (мій ПК)" };
 let localDirHandle = null;
 
@@ -502,20 +506,21 @@ function getServers() {
   return JSON.parse(localStorage.getItem("lua_servers") || "[]");
 }
 function saveServers(list) { localStorage.setItem("lua_servers", JSON.stringify(list)); }
-function getActiveServerId() { return localStorage.getItem("lua_active_server") || "default"; }
+function getActiveServerId() { return localStorage.getItem("lua_active_server") || "server1"; }
 function setActiveServerId(id) { localStorage.setItem("lua_active_server", id); }
 
 function getActiveServer() {
   const id = getActiveServerId();
-  if (id === "default") return DEFAULT_SERVER;
   if (id === "local") return LOCAL_SERVER;
+  const builtin = BUILTIN_SERVERS.find(s => s.id === id);
+  if (builtin) return builtin;
   return getServers().find(s => s.id === id) || DEFAULT_SERVER;
 }
 
 function renderServerSelect() {
   const sel = document.getElementById("serverSelect");
   const active = getActiveServerId();
-  sel.innerHTML = `<option value="default"${active === "default" ? " selected" : ""}>Основний (Hetzner)</option>`;
+  sel.innerHTML = BUILTIN_SERVERS.map(s => `<option value="${s.id}"${s.id === active ? " selected" : ""}>${s.name}</option>`).join("");
   sel.innerHTML += `<option value="local"${active === "local" ? " selected" : ""}>Локальний (мій ПК)</option>`;
   getServers().forEach(s => {
     sel.innerHTML += `<option value="${s.id}"${s.id === active ? " selected" : ""}>${s.name}</option>`;
@@ -567,7 +572,7 @@ function deleteServer(id) {
   if (!confirm("Видалити цей сервер?")) return;
   const servers = getServers().filter(s => s.id !== id);
   saveServers(servers);
-  if (getActiveServerId() === id) setActiveServerId("default");
+  if (getActiveServerId() === id) setActiveServerId("server1");
   renderServerList();
   renderServerSelect();
 }
@@ -590,9 +595,8 @@ function editServer(id) {
 
 function getServerPayload() {
   const s = getActiveServer();
-  if (s.id === "default") return {};
   if (s.id === "local") return {};
-  return { server: { host: s.host, port: s.port, user: s.user, pass: s.pass, basePath: s.basePath } };
+  return { server: { id: s.id, host: s.host, port: s.port, user: s.user, pass: s.pass, basePath: s.basePath } };
 }
 
 // ==================== LOCAL MODE (File System Access API) ====================
@@ -1496,8 +1500,12 @@ function uploadToServer() {
   const body = { code, comp, fileName, ...getServerPayload() };
 
   fetch("/api/upload", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) })
-  .then(r => r.text())
-  .then(() => { setStatus(`Збережено: ${fileName}`, "success"); currentServerFile = fileName; refreshFileList(); })
+  .then(r => r.text().then(text => {
+    if (!r.ok) throw new Error(text || `Помилка сервера (${r.status})`);
+    setStatus(`Збережено: ${fileName}`, "success");
+    currentServerFile = fileName;
+    refreshFileList();
+  }))
   .catch(err => setStatus(err.message, "error"));
 }
 

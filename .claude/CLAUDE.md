@@ -14,7 +14,8 @@
 | Призначення | Протокол | Хост | Що там |
 |---|---|---|---|
 | Веб-файли (деплой) | FTP | b5.s-host.com.ua:21 | index.html, upload.php, list_files.php |
-| Minecraft дані | SFTP | wing79.panel.godlike.host:2022 | world/computercraft/computer/{N}/*.lua |
+| Minecraft Server 1 (Forge 1.20.1) | SFTP | 46.225.227.42:2022, user: admin.3c4202c1 | world/computercraft/computer/{N}/*.lua |
+| Minecraft Server 2 (NeoForge 1.21.1) | SFTP | 46.225.227.42:2022, user: admin.cfc9be31 | world/computercraft/computer/{N}/*.lua |
 
 ## Структура проєкту
 ```
