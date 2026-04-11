@@ -5,24 +5,33 @@ export default async function handler(req, res) {
 
   res.setHeader('Content-Type', 'application/json; charset=utf-8');
 
-  const { comp, file, action } = req.body;
+  const { comp, file, action, server } = req.body;
 
   if (!comp) return res.status(400).json({ error: "Номер комп'ютера не вказано." });
 
   const compClean = comp.replace(/[^0-9]/g, '');
   const fileClean = file ? file.replace(/[^a-zA-Z0-9_\-\.]/g, '') : '';
 
+  const sftpConfig = server ? {
+    host: server.host,
+    port: parseInt(server.port || '2022'),
+    username: server.user,
+    password: server.pass,
+  } : {
+    host: process.env.SFTP_HOST || '46.225.227.42',
+    port: parseInt(process.env.SFTP_PORT || '2022'),
+    username: process.env.SFTP_USER || 'admin.3c4202c1',
+    password: process.env.SFTP_PASS,
+  };
+
+  const basePath = (server && server.basePath) || 'world/computercraft/computer/';
+
   const sftp = new SftpClient();
 
   try {
-    await sftp.connect({
-      host: process.env.SFTP_HOST || '46.225.227.42',
-      port: parseInt(process.env.SFTP_PORT || '2022'),
-      username: process.env.SFTP_USER || 'admin.3c4202c1',
-      password: process.env.SFTP_PASS,
-    });
+    await sftp.connect(sftpConfig);
 
-    const dir = `world/computercraft/computer/${compClean}`;
+    const dir = `${basePath}${compClean}`;
 
     if (action === 'delete' && fileClean) {
       await sftp.delete(`${dir}/${fileClean}`);

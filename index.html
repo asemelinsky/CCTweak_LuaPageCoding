@@ -1,1155 +1,1512 @@
 <!doctype html>
-<html lang="uk">
+<html lang="uk" data-theme="dark">
 <head>
   <meta charset="utf-8" />
-  <title>ComputerCraft : Lua Editor + Console</title>
+  <title>ComputerCraft : Lua Editor v7</title>
   <style>
+    /* ==================== CSS VARIABLES (THEMING) ==================== */
+    :root, [data-theme="dark"] {
+      --bg-main: #1e1e1e;
+      --bg-panel: #252526;
+      --bg-header: #2d2d30;
+      --bg-input: #333;
+      --bg-hover: #2a2a2a;
+      --bg-active: #1f3a5f;
+      --text-main: #ddd;
+      --text-dim: #888;
+      --text-accent: #4ec9b0;
+      --text-blue: #9cdcfe;
+      --text-yellow: #dcdcaa;
+      --text-orange: #ce9178;
+      --text-red: #f48771;
+      --border: #444;
+      --border-dim: #333;
+      --btn-bg: #333;
+      --btn-primary: #0e639c;
+      --btn-primary-hover: #1177bb;
+      --btn-run: #16825d;
+      --btn-run-hover: #1ea672;
+      --btn-danger: #c72a2a;
+      --tab-bg: #3c3c3c;
+      --tab-active: #1e1e1e;
+      --shadow: rgba(0,0,0,0.4);
+      --ace-theme: monokai;
+    }
+    [data-theme="light"] {
+      --bg-main: #ffffff;
+      --bg-panel: #f5f5f5;
+      --bg-header: #e8e8e8;
+      --bg-input: #fff;
+      --bg-hover: #eaeaea;
+      --bg-active: #cce5ff;
+      --text-main: #333;
+      --text-dim: #777;
+      --text-accent: #0d7e6b;
+      --text-blue: #0066cc;
+      --text-yellow: #b5890e;
+      --text-orange: #a85300;
+      --text-red: #d32f2f;
+      --border: #ccc;
+      --border-dim: #ddd;
+      --btn-bg: #e0e0e0;
+      --btn-primary: #0078d4;
+      --btn-primary-hover: #106ebe;
+      --btn-run: #1a9e5e;
+      --btn-run-hover: #22b86c;
+      --btn-danger: #d32f2f;
+      --tab-bg: #e0e0e0;
+      --tab-active: #ffffff;
+      --shadow: rgba(0,0,0,0.12);
+      --ace-theme: chrome;
+    }
+
+    /* ==================== BASE ==================== */
     html, body {
-      margin: 0;
-      height: 100%;
-      overflow: hidden;
+      margin: 0; height: 100%; overflow: hidden;
       font-family: 'Segoe UI', sans-serif;
-      background-color: #1e1e1e;
-      color: #ddd;
+      background-color: var(--bg-main);
+      color: var(--text-main);
     }
 
-    #container {
-      display: flex;
-      flex-direction: row;
-      height: 100vh;
-      width: 100vw;
-    }
+    #appWrap { display: flex; flex-direction: column; height: 100vh; width: 100vw; }
+    #container { display: flex; flex: 1; min-height: 0; }
 
-    /* 🧠 Ліва частина: редактор + консоль */
-    #leftPanel {
-      flex-grow: 1;
-      display: flex;
-      flex-direction: column;
-      height: 100%;
-    }
+    /* ==================== LEFT PANEL ==================== */
+    #leftPanel { flex: 1; display: flex; flex-direction: column; min-width: 200px; min-height: 0; }
 
-    /* 📝 Редактор коду */
-    #editor {
-      flex-grow: 1;
-      width: 100%;
-      font-size: 14px;
-      position: relative;
-    }
-
-    /* 🖥️ Консоль виводу */
-    #consoleWrapper {
-      height: 35%;
-      flex-shrink: 0;
-      background-color: #1e1e1e;
-      border-top: 2px solid #444;
-      display: flex;
-      flex-direction: column;
-    }
-
-    #consoleHeader {
-      background-color: #2d2d30;
-      padding: 8px 15px;
-      font-weight: bold;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      border-bottom: 1px solid #444;
-    }
-
-    #consoleHeader button {
-      padding: 4px 10px;
-      font-size: 12px;
-      background-color: #333;
-      color: #ddd;
-      border: none;
-      border-radius: 3px;
-      cursor: pointer;
-      margin: 0;
-      width: auto;
-    }
-
-    #consoleHeader button:hover {
-      background-color: #555;
-    }
-
-    #consoleOutput {
-      flex-grow: 1;
-      overflow-y: auto;
-      padding: 10px;
-      font-family: 'Consolas', 'Courier New', monospace;
-      font-size: 13px;
-      background-color: #1e1e1e;
-      color: #d4d4d4;
-      white-space: pre-wrap;
-      word-wrap: break-word;
-    }
-
-    .console-line {
-      margin-bottom: 4px;
-    }
-
-    .console-error {
-      color: #f48771;
-    }
-
-    .console-success {
-      color: #4ec9b0;
-    }
-
-    .console-info {
-      color: #9cdcfe;
-    }
-
-    .console-turtle {
-      color: #dcdcaa;
-    }
-
-    /* 📋 Панель керування праворуч */
-    #sidebar {
-      width: 320px;
-      background-color: #252526;
-      color: #ddd;
-      padding: 15px;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      justify-content: flex-start;
-      box-shadow: -2px 0 5px rgba(0,0,0,0.4);
-      overflow-y: auto;
-    }
-
-    input, button {
-      width: 100%;
-      margin-bottom: 10px;
-      padding: 8px;
-      font-size: 14px;
-      border: none;
-      border-radius: 4px;
-      box-sizing: border-box;
-    }
-
-    input {
-      background-color: #333;
-      color: #eee;
-    }
-
-    button {
-      background-color: #0e639c;
-      color: white;
-      font-weight: bold;
-      cursor: pointer;
-    }
-
-    button:hover {
-      background-color: #1177bb;
-    }
-
-    button.run-button {
-      background-color: #16825d;
-      font-size: 15px;
-      padding: 10px;
-    }
-
-    button.run-button:hover {
-      background-color: #1ea672;
-    }
-
-    /* Кнопки масштабування */
-    .zoom-controls {
-      display: flex;
-      gap: 5px;
-      margin-bottom: 10px;
-    }
-
-    .zoom-controls button {
-      width: auto;
-      padding: 6px 12px;
-      flex: 1;
-    }
-
-    h2 {
-      margin-top: 15px;
-      margin-bottom: 10px;
-      font-size: 18px;
-      border-bottom: 1px solid #444;
-      padding-bottom: 5px;
-    }
-
-    h2:first-of-type {
-      margin-top: 0;
-    }
-
-    #ftpStatus {
-      margin-top: 8px;
-      font-size: 0.85em;
-      word-wrap: break-word;
-      padding: 5px 8px;
-      border-radius: 4px;
-      min-height: 28px;
-      transition: opacity 0.5s;
-    }
-
-    #ftpStatus.status-loading { color: #9cdcfe; }
-    #ftpStatus.status-success { color: #4ec9b0; background: rgba(78,201,176,0.08); border: 1px solid rgba(78,201,176,0.25); }
-    #ftpStatus.status-error   { color: #f48771; background: rgba(244,135,113,0.08); border: 1px solid rgba(244,135,113,0.25); }
-
-    #fileList {
-      list-style: none;
-      padding-left: 0;
-      max-height: 180px;
-      overflow-y: auto;
-      background-color: #1f1f1f;
-      border: 1px solid #333;
-      border-radius: 4px;
-      margin-bottom: 10px;
-    }
-
-    #fileList li {
-      padding: 4px 8px;
-      border-bottom: 1px solid #333;
-      display: flex;
-      align-items: center;
-      gap: 4px;
-    }
-
-    #fileList li:hover { background-color: #2a2a2a; }
-    #fileList li.active { background-color: #1f3a5f; color: #9cdcfe; }
-
-    .file-name {
-      flex-grow: 1;
-      cursor: pointer;
-      font-size: 13px;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-    }
-
-    .file-delete-btn {
-      background: none;
-      border: none;
-      color: #555;
-      cursor: pointer;
-      font-size: 13px;
-      padding: 1px 4px;
-      width: auto;
-      margin: 0;
-      opacity: 0;
-      transition: opacity 0.15s, color 0.15s;
-      flex-shrink: 0;
-    }
-
-    #fileList li:hover .file-delete-btn { opacity: 1; }
-    .file-delete-btn:hover { color: #f48771 !important; background: none !important; }
-
-    /* 🔧 Виправлення автодоповнення - ШИРШЕ ВІКНО */
-    .ace_autocomplete {
-      width: 400px !important;
-      max-width: 500px !important;
-    }
-
-    .ace_autocomplete .ace_line {
-      white-space: nowrap !important;
-      overflow: visible !important;
-    }
-
-    .ace_autocomplete .ace_completion-highlight {
-      color: #569cd6 !important;
-      font-weight: bold;
-    }
-
-    .ace_autocomplete .ace_rightAlignedText {
-      color: #858585 !important;
-      padding-left: 15px !important;
-      font-size: 11px !important;
-    }
-
-    /* 🔴 Redstone console color */
-    .console-redstone {
-      color: #f44747;
-    }
-
-    /* 📑 Tab bar */
+    /* Tab bar */
     #tabBar {
-      display: flex;
-      align-items: center;
-      background-color: #2d2d30;
-      border-bottom: 1px solid #444;
-      padding: 0 4px;
-      height: 34px;
-      overflow-x: auto;
-      overflow-y: hidden;
-      flex-shrink: 0;
-      gap: 2px;
+      display: flex; align-items: center;
+      background: var(--bg-header); border-bottom: 1px solid var(--border);
+      padding: 0 4px; height: 34px;
+      overflow-x: auto; overflow-y: hidden; flex-shrink: 0; gap: 2px;
     }
-
-    #tabBar::-webkit-scrollbar {
-      height: 3px;
-    }
-
-    #tabBar::-webkit-scrollbar-thumb {
-      background: #555;
-    }
+    #tabBar::-webkit-scrollbar { height: 3px; }
+    #tabBar::-webkit-scrollbar-thumb { background: #555; }
 
     .tab {
-      display: flex;
-      align-items: center;
-      gap: 5px;
-      padding: 4px 10px;
-      background-color: #3c3c3c;
-      border: 1px solid #555;
-      border-bottom: none;
-      border-radius: 4px 4px 0 0;
-      cursor: pointer;
-      white-space: nowrap;
-      font-size: 13px;
-      color: #aaa;
-      user-select: none;
-      flex-shrink: 0;
+      display: flex; align-items: center; gap: 5px;
+      padding: 4px 10px; background: var(--tab-bg);
+      border: 1px solid var(--border); border-bottom: none;
+      border-radius: 4px 4px 0 0; cursor: pointer;
+      white-space: nowrap; font-size: 13px; color: var(--text-dim);
+      user-select: none; flex-shrink: 0;
     }
-
-    .tab.active {
-      background-color: #1e1e1e;
-      color: #eee;
-      border-color: #777;
-    }
-
-    .tab:hover:not(.active) {
-      background-color: #4a4a4a;
-    }
+    .tab.active { background: var(--tab-active); color: var(--text-main); border-color: #777; }
+    .tab:hover:not(.active) { background: var(--bg-hover); }
+    .tab.drag-over { border-left: 2px solid var(--text-accent); }
 
     .tab-name {
-      max-width: 120px;
-      overflow: hidden;
-      text-overflow: ellipsis;
+      max-width: 120px; overflow: hidden; text-overflow: ellipsis;
     }
-
+    .tab-name-input {
+      background: var(--bg-input); color: var(--text-main); border: 1px solid var(--text-accent);
+      border-radius: 2px; font-size: 12px; width: 100px; padding: 1px 3px; outline: none;
+    }
     .tab-close {
-      background: none;
-      border: none;
-      color: #888;
-      cursor: pointer;
-      font-size: 14px;
-      padding: 0 2px;
-      line-height: 1;
-      width: auto;
-      margin: 0;
-      border-radius: 3px;
+      background: none; border: none; color: var(--text-dim);
+      cursor: pointer; font-size: 14px; padding: 0 2px; line-height: 1;
+      width: auto; margin: 0; border-radius: 3px;
     }
-
-    .tab-close:hover {
-      background-color: #c72a2a;
-      color: white;
-    }
+    .tab-close:hover { background: var(--btn-danger); color: white; }
 
     #addTabBtn {
-      background: none;
-      border: 1px solid #555;
-      border-radius: 4px;
-      color: #aaa;
-      cursor: pointer;
-      font-size: 16px;
-      padding: 2px 8px;
-      line-height: 1;
-      width: auto;
-      margin: 0;
-      flex-shrink: 0;
+      background: none; border: 1px solid var(--border); border-radius: 4px;
+      color: var(--text-dim); cursor: pointer; font-size: 16px;
+      padding: 2px 8px; line-height: 1; width: auto; margin: 0; flex-shrink: 0;
+    }
+    #addTabBtn:hover { background: var(--bg-hover); color: var(--text-main); }
+
+    /* Editor */
+    #editor { flex: 1; width: 100%; font-size: 14px; position: relative; min-height: 100px; }
+
+    /* Horizontal splitter */
+    .h-splitter {
+      height: 5px; background: var(--border); cursor: row-resize; flex-shrink: 0;
+      transition: background 0.15s;
+    }
+    .h-splitter:hover, .h-splitter.active { background: var(--text-accent); }
+
+    /* Console */
+    #consoleWrapper {
+      height: 200px; flex-shrink: 0; background: var(--bg-main);
+      display: flex; flex-direction: column; min-height: 60px;
+    }
+    #consoleHeader {
+      background: var(--bg-header); padding: 6px 12px; font-weight: bold; font-size: 13px;
+      display: flex; justify-content: space-between; align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+    #consoleHeader button {
+      padding: 3px 8px; font-size: 11px; background: var(--btn-bg);
+      color: var(--text-main); border: none; border-radius: 3px; cursor: pointer;
+      width: auto; margin: 0;
+    }
+    #consoleHeader button:hover { background: var(--bg-hover); }
+
+    #consoleOutput {
+      flex: 1; overflow-y: auto; padding: 8px 10px;
+      font-family: 'Consolas', 'Courier New', monospace; font-size: 13px;
+      background: var(--bg-main); color: #d4d4d4;
+      white-space: pre-wrap; word-wrap: break-word;
+    }
+    .console-line { margin-bottom: 3px; }
+    .console-error { color: var(--text-red); }
+    .console-success { color: var(--text-accent); }
+    .console-info { color: var(--text-blue); }
+    .console-turtle { color: var(--text-yellow); }
+    .console-redstone { color: #f44747; }
+    .console-peripheral { color: #c586c0; }
+
+    /* Inline console input */
+    .console-input-wrap {
+      display: flex; align-items: center; gap: 6px; margin-top: 4px;
+    }
+    .console-input-wrap span { color: var(--text-accent); font-size: 13px; }
+    .console-input {
+      flex: 1; background: var(--bg-input); color: var(--text-main);
+      border: 1px solid var(--text-accent); border-radius: 3px;
+      padding: 4px 8px; font-family: 'Consolas', monospace; font-size: 13px;
+      outline: none;
     }
 
-    #addTabBtn:hover {
-      background-color: #4a4a4a;
-      color: #eee;
+    /* ==================== VERTICAL SPLITTER ==================== */
+    .v-splitter {
+      width: 5px; background: var(--border); cursor: col-resize; flex-shrink: 0;
+      transition: background 0.15s;
     }
+    .v-splitter:hover, .v-splitter.active { background: var(--text-accent); }
+
+    /* ==================== SIDEBAR ==================== */
+    #sidebar {
+      width: 320px; background: var(--bg-panel); color: var(--text-main);
+      padding: 12px; box-sizing: border-box;
+      display: flex; flex-direction: column;
+      box-shadow: -2px 0 5px var(--shadow);
+      overflow-y: auto; min-width: 200px; flex-shrink: 0;
+    }
+
+    #sidebar h2 {
+      margin: 14px 0 8px; font-size: 14px; color: var(--text-blue);
+      border-bottom: 1px solid var(--border-dim); padding-bottom: 4px;
+    }
+    #sidebar h2:first-of-type { margin-top: 0; }
+
+    input, select, button {
+      width: 100%; margin-bottom: 8px; padding: 7px 8px;
+      font-size: 13px; border: none; border-radius: 4px; box-sizing: border-box;
+    }
+    input, select {
+      background: var(--bg-input); color: var(--text-main);
+      border: 1px solid var(--border-dim);
+    }
+    select { cursor: pointer; }
+    button {
+      background: var(--btn-primary); color: white; font-weight: bold; cursor: pointer;
+    }
+    button:hover { background: var(--btn-primary-hover); }
+
+    .btn-run { background: var(--btn-run); font-size: 14px; padding: 9px; }
+    .btn-run:hover { background: var(--btn-run-hover); }
+    .btn-stop { background: var(--btn-danger); font-size: 14px; padding: 9px; display: none; }
+    .btn-stop:hover { background: #e03535; }
+    .btn-secondary { background: var(--btn-bg); color: var(--text-main); font-weight: normal; }
+    .btn-secondary:hover { background: var(--bg-hover); }
+    .btn-small {
+      width: auto; padding: 4px 10px; font-size: 12px; margin: 0;
+      background: var(--btn-bg); color: var(--text-main); font-weight: normal;
+    }
+    .btn-small:hover { background: var(--bg-hover); }
+
+    .row { display: flex; gap: 6px; margin-bottom: 8px; }
+    .row > * { flex: 1; margin-bottom: 0; }
+
+    /* Zoom controls */
+    .zoom-controls { display: flex; gap: 4px; margin-bottom: 8px; }
+    .zoom-controls button { flex: 1; padding: 5px; width: auto; }
+
+    /* Server selector */
+    .server-row { display: flex; gap: 4px; align-items: stretch; margin-bottom: 8px; }
+    .server-row select { flex: 1; margin: 0; }
+    .server-row button { width: 32px; flex-shrink: 0; margin: 0; padding: 0; font-size: 16px; background: var(--btn-bg); color: var(--text-main); }
+    .server-row button:hover { background: var(--bg-hover); }
+
+    /* Upload status */
+    #ftpStatus {
+      font-size: 0.85em; word-wrap: break-word;
+      padding: 5px 8px; border-radius: 4px; min-height: 24px;
+      transition: opacity 0.5s;
+    }
+    #ftpStatus.status-loading { color: var(--text-blue); }
+    #ftpStatus.status-success { color: var(--text-accent); background: rgba(78,201,176,0.08); border: 1px solid rgba(78,201,176,0.25); }
+    #ftpStatus.status-error { color: var(--text-red); background: rgba(244,135,113,0.08); border: 1px solid rgba(244,135,113,0.25); }
+
+    /* File list */
+    #fileList {
+      list-style: none; padding: 0; max-height: 160px;
+      overflow-y: auto; background: var(--bg-main);
+      border: 1px solid var(--border-dim); border-radius: 4px; margin-bottom: 8px;
+    }
+    #fileList li {
+      padding: 3px 8px; border-bottom: 1px solid var(--border-dim);
+      display: flex; align-items: center; gap: 4px; font-size: 13px;
+    }
+    #fileList li:hover { background: var(--bg-hover); }
+    #fileList li.active { background: var(--bg-active); color: var(--text-blue); }
+    .file-name { flex: 1; cursor: pointer; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .file-delete-btn {
+      background: none !important; border: none; color: #555; cursor: pointer;
+      font-size: 13px; padding: 1px 4px; width: auto; margin: 0;
+      opacity: 0; transition: opacity 0.15s;
+    }
+    #fileList li:hover .file-delete-btn { opacity: 1; }
+    .file-delete-btn:hover { color: var(--text-red) !important; }
+
+    /* ==================== STATUS BAR ==================== */
+    #statusBar {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--btn-primary); color: #fff; padding: 0 12px;
+      font-size: 12px; height: 22px; flex-shrink: 0;
+      font-family: 'Segoe UI', sans-serif;
+    }
+    #statusBar .left, #statusBar .right { display: flex; gap: 14px; align-items: center; }
+    #statusBar span { white-space: nowrap; }
+
+    /* ==================== MODALS ==================== */
+    .modal-overlay {
+      display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.55); z-index: 1000;
+      justify-content: center; align-items: center;
+    }
+    .modal-overlay.open { display: flex; }
+    .modal {
+      background: var(--bg-panel); border: 1px solid var(--border);
+      border-radius: 8px; padding: 20px; min-width: 400px; max-width: 600px;
+      max-height: 80vh; overflow-y: auto; box-shadow: 0 8px 30px var(--shadow);
+    }
+    .modal h3 { margin: 0 0 14px; color: var(--text-accent); font-size: 16px; }
+    .modal label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 3px; }
+    .modal input, .modal select { margin-bottom: 10px; }
+    .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 14px; }
+    .modal-actions button { width: auto; padding: 6px 16px; }
+
+    .server-item {
+      display: flex; align-items: center; gap: 8px;
+      padding: 8px; border: 1px solid var(--border-dim); border-radius: 4px; margin-bottom: 6px;
+    }
+    .server-item .name { flex: 1; font-size: 13px; }
+    .server-item .host { color: var(--text-dim); font-size: 12px; font-family: monospace; }
+    .server-item button { width: auto; padding: 3px 8px; margin: 0; font-size: 11px; }
+
+    /* Snippet grid */
+    .snippet-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+    .snippet-card {
+      background: var(--bg-main); border: 1px solid var(--border-dim);
+      border-radius: 6px; padding: 10px; cursor: pointer; transition: border-color 0.15s;
+    }
+    .snippet-card:hover { border-color: var(--text-accent); }
+    .snippet-card .title { font-size: 13px; font-weight: bold; color: var(--text-accent); margin-bottom: 4px; }
+    .snippet-card .desc { font-size: 11px; color: var(--text-dim); }
+    .snippet-category { font-size: 12px; color: var(--text-yellow); margin: 10px 0 6px; font-weight: bold; }
+    .snippet-category:first-of-type { margin-top: 0; }
+
+    /* ==================== ACE OVERRIDES ==================== */
+    .ace_autocomplete { width: 400px !important; max-width: 500px !important; }
+    .ace_autocomplete .ace_line { white-space: nowrap !important; overflow: visible !important; }
+    .ace_autocomplete .ace_completion-highlight { color: #569cd6 !important; font-weight: bold; }
+    .ace_autocomplete .ace_rightAlignedText { color: #858585 !important; padding-left: 15px !important; font-size: 11px !important; }
   </style>
 
-  <!-- Ace Editor CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ace.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/ace/1.32.3/ext-language_tools.js"></script>
-  <!-- Fengari - Lua VM для JavaScript -->
-  <script src="https://cdn.jsdelivr.net/npm/fengari-web@0.1.4/dist/fengari-web.js"></script>
 </head>
 <body>
-  <div id="container">
-    <!-- Ліва частина: редактор + консоль -->
-    <div id="leftPanel">
-      <!-- 📑 Таб-панель -->
-      <div id="tabBar">
-        <!-- Таби рендеруються JS -->
-        <button id="addTabBtn" title="Новий файл">+</button>
+  <div id="appWrap">
+    <div id="container">
+      <!-- LEFT PANEL -->
+      <div id="leftPanel">
+        <div id="tabBar">
+          <button id="addTabBtn" title="Новий файл (Ctrl+T)">+</button>
+        </div>
+        <div id="editor"></div>
+        <div class="h-splitter" id="hSplitter"></div>
+        <div id="consoleWrapper">
+          <div id="consoleHeader">
+            <span>Консоль</span>
+            <div style="display:flex;gap:4px;">
+              <button id="clearConsoleBtn">Очистити</button>
+            </div>
+          </div>
+          <div id="consoleOutput">
+            <div class="console-line console-info">Готово. Натисни "Run" або Ctrl+Enter</div>
+          </div>
+        </div>
       </div>
 
-      <!-- 📝 Редактор коду -->
-      <div id="editor"></div>
+      <!-- VERTICAL SPLITTER -->
+      <div class="v-splitter" id="vSplitter"></div>
 
-      <!-- 🖥️ Консоль виводу -->
-      <div id="consoleWrapper">
-        <div id="consoleHeader">
-          <span>📟 Консоль виводу</span>
-          <button id="clearConsoleBtn">🗑️ Очистити</button>
+      <!-- SIDEBAR -->
+      <div id="sidebar">
+        <h2>Lua Editor <span style="font-size:11px;color:var(--text-dim);font-weight:normal;">v7</span></h2>
+
+        <input type="text" id="fileName" value="program.lua" placeholder="Назва файлу">
+
+        <div class="zoom-controls">
+          <button id="zoomOutBtn" class="btn-secondary" title="Ctrl+-">A-</button>
+          <button id="zoomInBtn" class="btn-secondary" title="Ctrl++">A+</button>
+          <button id="themeBtn" class="btn-secondary" title="Змінити тему">Dark</button>
         </div>
-        <div id="consoleOutput">
-          <div class="console-line console-info">Готово до тестування! Натисни "▶ Запустити тест"</div>
+
+        <button id="runBtn" class="btn-run" title="Ctrl+Enter">Run</button>
+        <button id="stopBtn" class="btn-stop">Stop</button>
+
+        <h2>Файли</h2>
+        <div class="row">
+          <button id="loadBtn" class="btn-secondary">Відкрити</button>
+          <button id="saveBtn" class="btn-secondary">Зберегти</button>
         </div>
+        <input type="file" id="fileInput" accept=".lua,.txt" style="display:none;">
+        <button id="snippetBtn" class="btn-secondary">Шаблони...</button>
+        <div class="row">
+          <a href="server.html" style="text-align:center;font-size:12px;color:var(--text-dim);text-decoration:none;padding:4px;border:1px solid var(--border-dim);border-radius:4px;">Сервер</a>
+          <a href="changelog.html" style="text-align:center;font-size:12px;color:var(--text-dim);text-decoration:none;padding:4px;border:1px solid var(--border-dim);border-radius:4px;">Що нового?</a>
+        </div>
+
+        <h2>Сервер</h2>
+        <div class="server-row">
+          <select id="serverSelect"></select>
+          <button id="serverManageBtn" title="Керувати серверами">+</button>
+        </div>
+        <input type="number" id="compNumber" placeholder="Номер комп'ютера (202)">
+        <button id="uploadBtn" title="Ctrl+Shift+S">Вивантажити на сервер</button>
+        <div id="ftpStatus"></div>
+
+        <h2>Файли на сервері</h2>
+        <button id="refreshFilesBtn" class="btn-secondary">Оновити список</button>
+        <ul id="fileList"><li style="color:var(--text-dim);">(немає даних)</li></ul>
       </div>
     </div>
 
-    <!-- 📋 Панель керування -->
-    <div id="sidebar">
-      <h2>Lua Editor</h2>
-      
-      <input type="text" id="fileName" value="program.lua" placeholder="Назва файлу">
-
-      <!-- 🔍 Масштабування тексту -->
-      <div class="zoom-controls">
-        <button id="zoomOutBtn" title="Зменшити шрифт (Ctrl+-)">A−</button>
-        <button id="zoomInBtn" title="Збільшити шрифт (Ctrl++)">A+</button>
+    <!-- STATUS BAR -->
+    <div id="statusBar">
+      <div class="left">
+        <span id="sbCursor">Ln 1, Col 1</span>
+        <span id="sbLines">Lines: 1</span>
       </div>
-
-      <!-- 🚀 Кнопка тестування -->
-      <button id="runBtn" class="run-button" title="Запустити тест (Ctrl+Enter)">▶ Запустити тест</button>
-
-      <h2>📂 Локальні дії</h2>
-      <button id="loadBtn">📂 Завантажити файл</button>
-      <input type="file" id="fileInput" accept=".lua,.txt" style="display: none;">
-      <button id="saveBtn">💾 Зберегти локально</button>
-
-      <!-- 📤 Вивантаження -->
-      <h2>📤 Вивантаження на сервер</h2>
-      <input type="number" id="compNumber" placeholder="Номер комп'ютера (наприклад, 202)">
-      <button id="uploadBtn" title="Вивантажити на сервер (Ctrl+Shift+S)">Вивантажити на сервер</button>
-      <div id="ftpStatus"></div>
-
-      <!-- 📁 Перегляд файлів -->
-      <h2>📁 Файли на сервері</h2>
-      <button id="refreshFilesBtn">🔄 Оновити список</button>
-      <ul id="fileList"><li style="color:#777;">(немає даних)</li></ul>
+      <div class="right">
+        <span id="sbServer">Default</span>
+        <span>UTF-8</span>
+        <span>Lua</span>
+      </div>
     </div>
   </div>
 
-  <script>
-    let editor;
-    let consoleOutput;
-    let currentFontSize = 14;
+  <!-- SERVER MODAL -->
+  <div class="modal-overlay" id="serverModal">
+    <div class="modal">
+      <h3>Керування серверами</h3>
+      <div id="serverList"></div>
+      <hr style="border-color:var(--border-dim);margin:12px 0;">
+      <h3 style="font-size:14px;">Додати сервер</h3>
+      <label>Назва</label>
+      <input type="text" id="srvName" placeholder="Локальний сервер">
+      <label>Хост</label>
+      <input type="text" id="srvHost" placeholder="192.168.1.100">
+      <div class="row">
+        <div><label>Порт</label><input type="number" id="srvPort" value="2022"></div>
+        <div><label>Базовий шлях</label><input type="text" id="srvPath" value="world/computercraft/computer/" placeholder="world/computercraft/computer/"></div>
+      </div>
+      <label>Користувач</label>
+      <input type="text" id="srvUser" placeholder="admin.xxx">
+      <label>Пароль</label>
+      <input type="password" id="srvPass" placeholder="пароль SFTP">
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('serverModal')">Закрити</button>
+        <button onclick="addServer()">Додати</button>
+      </div>
+    </div>
+  </div>
 
-    // 📑 Стан табів
-    const DEFAULT_CODE = "-- Напиши свій Lua код тут\n-- Підказка: пиши \"turtle.\" або \"rs.\" щоб побачити всі команди\n\n";
-    let tabs = JSON.parse(localStorage.getItem("lua_tabs") || "null") || [
-      { id: 1, name: "program.lua", content: DEFAULT_CODE }
-    ];
-    let activeTabId = parseInt(localStorage.getItem("lua_active_tab") || "1");
-    let nextTabId = Math.max(...tabs.map(t => t.id)) + 1;
+  <!-- SNIPPET MODAL -->
+  <div class="modal-overlay" id="snippetModal">
+    <div class="modal" style="min-width:500px;">
+      <h3>Шаблони програм</h3>
+      <div id="snippetContent"></div>
+      <div class="modal-actions">
+        <button class="btn-secondary" onclick="closeModal('snippetModal')">Закрити</button>
+      </div>
+    </div>
+  </div>
 
-    function saveTabs() {
-      localStorage.setItem("lua_tabs", JSON.stringify(tabs));
-      localStorage.setItem("lua_active_tab", String(activeTabId));
-    }
+<script>
+// ==================== STATE ====================
+let editor, consoleOutput;
+let currentFontSize = 14;
+let currentServerFile = null;
+let executionAborted = false;
+let isRunning = false;
+let lastPrintText = "";
 
-    function renderTabs() {
-      const bar = document.getElementById("tabBar");
-      const addBtn = document.getElementById("addTabBtn");
-      // Видаляємо всі таби (залишаємо кнопку +)
-      bar.querySelectorAll(".tab").forEach(el => el.remove());
+const DEFAULT_CODE = "-- Lua код для ComputerCraft\n-- Підказка: turtle. / rs. / peripheral.\n\n";
 
-      tabs.forEach(tab => {
-        const el = document.createElement("div");
-        el.className = "tab" + (tab.id === activeTabId ? " active" : "");
-        el.dataset.id = tab.id;
+// ==================== THEME ====================
+function getTheme() { return localStorage.getItem("lua_theme") || "dark"; }
 
-        const nameSpan = document.createElement("span");
-        nameSpan.className = "tab-name";
-        nameSpan.textContent = tab.name;
-        nameSpan.title = tab.name;
-        el.appendChild(nameSpan);
+function applyTheme(t) {
+  document.documentElement.setAttribute("data-theme", t);
+  localStorage.setItem("lua_theme", t);
+  document.getElementById("themeBtn").textContent = t === "dark" ? "Dark" : "Light";
+  if (editor) editor.setTheme("ace/theme/" + (t === "dark" ? "monokai" : "chrome"));
+}
 
-        const closeBtn = document.createElement("button");
-        closeBtn.className = "tab-close";
-        closeBtn.textContent = "×";
-        closeBtn.title = "Закрити";
-        closeBtn.onclick = (e) => { e.stopPropagation(); closeTab(tab.id); };
-        el.appendChild(closeBtn);
+function toggleTheme() {
+  applyTheme(getTheme() === "dark" ? "light" : "dark");
+}
 
-        el.onclick = () => switchTab(tab.id);
-        bar.insertBefore(el, addBtn);
-      });
-    }
+// ==================== SERVER PROFILES ====================
+const DEFAULT_SERVER = { id: "default", name: "Основний (Hetzner)", host: "", port: "", user: "", pass: "", basePath: "world/computercraft/computer/" };
 
-    function switchTab(id) {
-      // Зберігаємо поточний контент
-      const cur = tabs.find(t => t.id === activeTabId);
-      if (cur && editor) cur.content = editor.getValue();
+function getServers() {
+  return JSON.parse(localStorage.getItem("lua_servers") || "[]");
+}
+function saveServers(list) { localStorage.setItem("lua_servers", JSON.stringify(list)); }
+function getActiveServerId() { return localStorage.getItem("lua_active_server") || "default"; }
+function setActiveServerId(id) { localStorage.setItem("lua_active_server", id); }
 
-      activeTabId = id;
-      const next = tabs.find(t => t.id === id);
-      if (next && editor) {
-        editor.setValue(next.content, -1);
-        document.getElementById("fileName").value = next.name;
+function getActiveServer() {
+  const id = getActiveServerId();
+  if (id === "default") return DEFAULT_SERVER;
+  return getServers().find(s => s.id === id) || DEFAULT_SERVER;
+}
+
+function renderServerSelect() {
+  const sel = document.getElementById("serverSelect");
+  const active = getActiveServerId();
+  sel.innerHTML = `<option value="default"${active === "default" ? " selected" : ""}>Основний (Hetzner)</option>`;
+  getServers().forEach(s => {
+    sel.innerHTML += `<option value="${s.id}"${s.id === active ? " selected" : ""}>${s.name}</option>`;
+  });
+  updateStatusServer();
+}
+
+function updateStatusServer() {
+  const s = getActiveServer();
+  document.getElementById("sbServer").textContent = s.name;
+}
+
+function renderServerList() {
+  const list = document.getElementById("serverList");
+  const servers = getServers();
+  if (!servers.length) { list.innerHTML = '<div style="color:var(--text-dim);font-size:13px;">Додаткових серверів немає</div>'; return; }
+  list.innerHTML = servers.map(s => `
+    <div class="server-item">
+      <div>
+        <div class="name">${s.name}</div>
+        <div class="host">${s.host}:${s.port}</div>
+      </div>
+      <button class="btn-small" onclick="editServer('${s.id}')">Edit</button>
+      <button class="btn-small" style="color:var(--text-red);" onclick="deleteServer('${s.id}')">Del</button>
+    </div>
+  `).join("");
+}
+
+function addServer() {
+  const name = document.getElementById("srvName").value.trim();
+  const host = document.getElementById("srvHost").value.trim();
+  const port = document.getElementById("srvPort").value.trim() || "2022";
+  const user = document.getElementById("srvUser").value.trim();
+  const pass = document.getElementById("srvPass").value;
+  const basePath = document.getElementById("srvPath").value.trim() || "world/computercraft/computer/";
+  if (!name || !host || !user) return alert("Заповни назву, хост та користувача");
+  const servers = getServers();
+  servers.push({ id: "srv_" + Date.now(), name, host, port, user, pass, basePath });
+  saveServers(servers);
+  renderServerList();
+  renderServerSelect();
+  ["srvName","srvHost","srvUser","srvPass"].forEach(id => document.getElementById(id).value = "");
+  document.getElementById("srvPort").value = "2022";
+  document.getElementById("srvPath").value = "world/computercraft/computer/";
+}
+
+function deleteServer(id) {
+  if (!confirm("Видалити цей сервер?")) return;
+  const servers = getServers().filter(s => s.id !== id);
+  saveServers(servers);
+  if (getActiveServerId() === id) setActiveServerId("default");
+  renderServerList();
+  renderServerSelect();
+}
+
+function editServer(id) {
+  const servers = getServers();
+  const s = servers.find(x => x.id === id);
+  if (!s) return;
+  const name = prompt("Назва:", s.name); if (name === null) return;
+  const host = prompt("Хост:", s.host); if (host === null) return;
+  const port = prompt("Порт:", s.port); if (port === null) return;
+  const user = prompt("Користувач:", s.user); if (user === null) return;
+  const pass = prompt("Пароль:", s.pass); if (pass === null) return;
+  const basePath = prompt("Базовий шлях:", s.basePath); if (basePath === null) return;
+  Object.assign(s, { name, host, port, user, pass, basePath });
+  saveServers(servers);
+  renderServerList();
+  renderServerSelect();
+}
+
+function getServerPayload() {
+  const s = getActiveServer();
+  if (s.id === "default") return {};
+  return { server: { host: s.host, port: s.port, user: s.user, pass: s.pass, basePath: s.basePath } };
+}
+
+// ==================== MODALS ====================
+function openModal(id) { document.getElementById(id).classList.add("open"); }
+function closeModal(id) { document.getElementById(id).classList.remove("open"); }
+
+// ==================== TABS ====================
+let tabs = JSON.parse(localStorage.getItem("lua_tabs") || "null") || [{ id: 1, name: "program.lua", content: DEFAULT_CODE }];
+let activeTabId = parseInt(localStorage.getItem("lua_active_tab") || "1");
+let nextTabId = Math.max(...tabs.map(t => t.id)) + 1;
+let dragTabId = null;
+
+function saveTabs() {
+  localStorage.setItem("lua_tabs", JSON.stringify(tabs));
+  localStorage.setItem("lua_active_tab", String(activeTabId));
+}
+
+function renderTabs() {
+  const bar = document.getElementById("tabBar");
+  const addBtn = document.getElementById("addTabBtn");
+  bar.querySelectorAll(".tab").forEach(el => el.remove());
+
+  tabs.forEach(tab => {
+    const el = document.createElement("div");
+    el.className = "tab" + (tab.id === activeTabId ? " active" : "");
+    el.draggable = true;
+    el.dataset.id = tab.id;
+
+    const nameSpan = document.createElement("span");
+    nameSpan.className = "tab-name";
+    nameSpan.textContent = tab.name;
+    nameSpan.title = tab.name;
+    // Double-click to rename
+    nameSpan.addEventListener("dblclick", (e) => {
+      e.stopPropagation();
+      startTabRename(tab.id, nameSpan);
+    });
+    el.appendChild(nameSpan);
+
+    const closeBtn = document.createElement("button");
+    closeBtn.className = "tab-close";
+    closeBtn.textContent = "\u00d7";
+    closeBtn.title = "Закрити";
+    closeBtn.onclick = (e) => { e.stopPropagation(); closeTab(tab.id); };
+    el.appendChild(closeBtn);
+
+    el.onclick = () => switchTab(tab.id);
+
+    // Drag events
+    el.addEventListener("dragstart", (e) => { dragTabId = tab.id; e.dataTransfer.effectAllowed = "move"; });
+    el.addEventListener("dragover", (e) => { e.preventDefault(); el.classList.add("drag-over"); });
+    el.addEventListener("dragleave", () => el.classList.remove("drag-over"));
+    el.addEventListener("drop", (e) => {
+      e.preventDefault(); el.classList.remove("drag-over");
+      if (dragTabId === null || dragTabId === tab.id) return;
+      const fromIdx = tabs.findIndex(t => t.id === dragTabId);
+      const toIdx = tabs.findIndex(t => t.id === tab.id);
+      const [moved] = tabs.splice(fromIdx, 1);
+      tabs.splice(toIdx, 0, moved);
+      saveTabs(); renderTabs();
+    });
+    el.addEventListener("dragend", () => { dragTabId = null; });
+
+    bar.insertBefore(el, addBtn);
+  });
+}
+
+function startTabRename(id, span) {
+  const tab = tabs.find(t => t.id === id);
+  if (!tab) return;
+  const input = document.createElement("input");
+  input.type = "text";
+  input.className = "tab-name-input";
+  input.value = tab.name;
+  span.replaceWith(input);
+  input.focus();
+  input.select();
+  const finish = () => {
+    const val = input.value.trim() || tab.name;
+    tab.name = val;
+    if (tab.id === activeTabId) document.getElementById("fileName").value = val;
+    saveTabs(); renderTabs();
+  };
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") finish(); if (e.key === "Escape") { saveTabs(); renderTabs(); } });
+  input.addEventListener("blur", finish);
+}
+
+function switchTab(id) {
+  const cur = tabs.find(t => t.id === activeTabId);
+  if (cur && editor) cur.content = editor.getValue();
+  activeTabId = id;
+  const next = tabs.find(t => t.id === id);
+  if (next && editor) {
+    editor.setValue(next.content, -1);
+    document.getElementById("fileName").value = next.name;
+  }
+  saveTabs(); renderTabs();
+}
+
+function addTab() {
+  const cur = tabs.find(t => t.id === activeTabId);
+  if (cur && editor) cur.content = editor.getValue();
+  const id = nextTabId++;
+  const name = "new_" + id + ".lua";
+  tabs.push({ id, name, content: DEFAULT_CODE });
+  activeTabId = id;
+  if (editor) { editor.setValue(DEFAULT_CODE, -1); document.getElementById("fileName").value = name; }
+  saveTabs(); renderTabs();
+}
+
+function closeTab(id) {
+  if (tabs.length === 1) return;
+  const idx = tabs.findIndex(t => t.id === id);
+  tabs.splice(idx, 1);
+  if (activeTabId === id) {
+    const t = tabs[Math.min(idx, tabs.length - 1)];
+    activeTabId = t.id;
+    if (editor) { editor.setValue(t.content, -1); document.getElementById("fileName").value = t.name; }
+  }
+  saveTabs(); renderTabs();
+}
+
+function syncTabName(name) {
+  const tab = tabs.find(t => t.id === activeTabId);
+  if (tab) { tab.name = name; saveTabs(); renderTabs(); }
+}
+
+// ==================== AUTOCOMPLETE DATA ====================
+const ccAPI = [
+  { name: "print", value: "print(text)", meta: "base", score: 2000 },
+  { name: "read", value: "read()", meta: "input", score: 2000 },
+  { name: "write", value: "write(text)", meta: "base", score: 2000 },
+  { name: "sleep", value: "sleep(seconds)", meta: "delay", score: 2000 },
+  { name: "tonumber", value: "tonumber(value)", meta: "convert", score: 2000 },
+  { name: "tostring", value: "tostring(value)", meta: "convert", score: 2000 },
+  { name: "pairs", value: "pairs(table)", meta: "iterator", score: 2000 },
+  { name: "ipairs", value: "ipairs(table)", meta: "iterator", score: 2000 },
+  { name: "type", value: "type(value)", meta: "base", score: 2000 },
+  { name: "io.read", value: "io.read()", meta: "io", score: 1900 },
+  { name: "io.write", value: "io.write(text)", meta: "io", score: 1900 },
+  { name: "os.sleep", value: "os.sleep(seconds)", meta: "os", score: 1900 },
+  // string
+  { name: "string.len", value: "string.len(s)", meta: "string", score: 1800 },
+  { name: "string.sub", value: "string.sub(s, i, j)", meta: "string", score: 1800 },
+  { name: "string.find", value: 'string.find(s, "pattern")', meta: "string", score: 1800 },
+  { name: "string.format", value: 'string.format("%s", val)', meta: "string", score: 1800 },
+  { name: "string.rep", value: "string.rep(s, n)", meta: "string", score: 1800 },
+  { name: "string.upper", value: "string.upper(s)", meta: "string", score: 1800 },
+  { name: "string.lower", value: "string.lower(s)", meta: "string", score: 1800 },
+  { name: "string.reverse", value: "string.reverse(s)", meta: "string", score: 1800 },
+  // math
+  { name: "math.floor", value: "math.floor(x)", meta: "math", score: 1800 },
+  { name: "math.ceil", value: "math.ceil(x)", meta: "math", score: 1800 },
+  { name: "math.abs", value: "math.abs(x)", meta: "math", score: 1800 },
+  { name: "math.max", value: "math.max(a, b)", meta: "math", score: 1800 },
+  { name: "math.min", value: "math.min(a, b)", meta: "math", score: 1800 },
+  { name: "math.random", value: "math.random(min, max)", meta: "math", score: 1800 },
+  { name: "math.sqrt", value: "math.sqrt(x)", meta: "math", score: 1800 },
+  // textutils
+  { name: "textutils.serialize", value: "textutils.serialize(table)", meta: "textutils", score: 1700 },
+  { name: "textutils.unserialize", value: 'textutils.unserialize(str)', meta: "textutils", score: 1700 },
+  // turtle
+  ...["forward","back","up","down","turnLeft","turnRight",
+      "dig","digUp","digDown","place","placeUp","placeDown",
+      "select","getItemCount","getItemSpace","detect","detectUp","detectDown",
+      "compare","compareUp","compareDown","attack","attackUp","attackDown",
+      "drop","dropUp","dropDown","suck","suckUp","suckDown",
+      "refuel","getFuelLevel","getFuelLimit","transferTo","getSelectedSlot",
+      "equipLeft","equipRight","inspect","inspectUp","inspectDown","getItemDetail"
+  ].map(m => ({ name: "turtle." + m, value: `turtle.${m}(${m.match(/select|Count|Space|drop|suck|transferTo|refuel|Detail/) ? "slot" : ""})`.replace("(slot)","(1)").replace("slot",""), meta: "turtle", score: 1500 })),
+  // redstone
+  ...["setOutput","getOutput","getInput","setAnalogOutput","getAnalogOutput","getAnalogInput"].flatMap(m => [
+    { name: "rs." + m, value: `rs.${m}("front"${m.includes("set") ? (m.includes("Analog") ? ", 15" : ", true") : ""})`, meta: "redstone", score: 1400 },
+    { name: "redstone." + m, value: `redstone.${m}("front"${m.includes("set") ? (m.includes("Analog") ? ", 15" : ", true") : ""})`, meta: "redstone", score: 1350 },
+  ]),
+  // peripheral
+  { name: "peripheral.find", value: 'peripheral.find("monitor")', meta: "peripheral", score: 1600 },
+  { name: "peripheral.wrap", value: 'peripheral.wrap("left")', meta: "peripheral", score: 1600 },
+  { name: "peripheral.isPresent", value: 'peripheral.isPresent("left")', meta: "peripheral", score: 1600 },
+  { name: "peripheral.getType", value: 'peripheral.getType("left")', meta: "peripheral", score: 1600 },
+  { name: "peripheral.getNames", value: "peripheral.getNames()", meta: "peripheral", score: 1600 },
+];
+
+const customCompleter = {
+  getCompletions(editor, session, pos, prefix, callback) {
+    callback(null, ccAPI.map(a => ({ caption: a.name, value: a.value, meta: a.meta, score: a.score })));
+  }
+};
+
+// ==================== CONSOLE ====================
+function addConsoleLog(text, type = "info") {
+  const line = document.createElement("div");
+  line.className = `console-line console-${type}`;
+  line.textContent = text;
+  consoleOutput.appendChild(line);
+  consoleOutput.scrollTop = consoleOutput.scrollHeight;
+}
+
+function clearConsole() {
+  consoleOutput.innerHTML = '<div class="console-line console-info">Консоль очищено</div>';
+}
+
+// Inline read() — returns a Promise
+function consoleRead(promptText) {
+  return new Promise((resolve) => {
+    const wrap = document.createElement("div");
+    wrap.className = "console-input-wrap";
+    const label = document.createElement("span");
+    label.textContent = promptText || ">";
+    const input = document.createElement("input");
+    input.type = "text";
+    input.className = "console-input";
+    wrap.appendChild(label);
+    wrap.appendChild(input);
+    consoleOutput.appendChild(wrap);
+    consoleOutput.scrollTop = consoleOutput.scrollHeight;
+    input.focus();
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        const val = input.value;
+        wrap.remove();
+        addConsoleLog(`> ${val}`, "info");
+        resolve(val);
       }
-      saveTabs();
-      renderTabs();
+    });
+  });
+}
+
+// ==================== UPLOAD STATUS ====================
+function setStatus(msg, type) {
+  const el = document.getElementById("ftpStatus");
+  el.className = "status-" + type;
+  el.style.opacity = "1";
+  el.textContent = msg;
+  if (type === "success") {
+    setTimeout(() => {
+      el.style.opacity = "0";
+      setTimeout(() => { el.textContent = ""; el.className = ""; el.style.opacity = "1"; }, 500);
+    }, 3000);
+  }
+}
+
+// ==================== LUA TRANSPILER ====================
+function luaToJs(code) {
+  let js = code
+    // Comments
+    .replace(/--\[\[[\s\S]*?\]\]/g, '')
+    .replace(/--[^\n]*/g, '')
+    // nil → null
+    .replace(/\bnil\b/g, 'null')
+    // Logical operators (before other replacements)
+    .replace(/\bnot\b/g, '!')
+    .replace(/\band\b/g, '&&')
+    .replace(/\bor\b/g, '||')
+    // ~= → !==
+    .replace(/~=/g, '!==')
+    // String concat .. → +
+    .replace(/\.\./g, '+')
+    // # length operator: #varName → varName.length
+    .replace(/#([a-zA-Z_]\w*)/g, '$1.length')
+    // function name(args)
+    .replace(/\bfunction\s+(\w+)\s*\((.*?)\)/g, 'function $1($2)')
+    // local
+    .replace(/\blocal\s+function\s+/g, 'function ')
+    .replace(/\blocal\s+/g, 'let ')
+    // repeat..until → do..while
+    .replace(/\brepeat\b/g, 'do {')
+    .replace(/\buntil\s+(.+)/g, '} while (!($1));')
+    // while cond do → while (cond) {
+    .replace(/\bwhile\s+(.+?)\s+do\b/g, 'while ($1) {')
+    // for i = start, end, step do
+    .replace(/for\s+(\w+)\s*=\s*([^,]+),\s*([^,]+),\s*([^\s{]+)\s*do\b/g,
+             'for (let $1 = $2; $1 <= $3; $1 += $4) {')
+    .replace(/for\s+(\w+)\s*=\s*([^,]+),\s*([^,\s]+)\s+do\b/g,
+             'for (let $1 = $2; $1 <= $3; $1++) {')
+    // for k, v in pairs(t) do
+    .replace(/for\s+(\w+)\s*,\s*(\w+)\s+in\s+pairs\s*\((.+?)\)\s+do\b/g,
+             'for (const [$1, $2] of Object.entries($3)) {')
+    // for i, v in ipairs(t) do
+    .replace(/for\s+(\w+)\s*,\s*(\w+)\s+in\s+ipairs\s*\((.+?)\)\s+do\b/g,
+             'for (let _i = 0; _i < $3.length; _i++) { const $1 = _i+1; const $2 = $3[_i];')
+    // then, do, end, elseif, else
+    .replace(/\bthen\b/g, '{')
+    .replace(/\bdo\b/g, '{')
+    .replace(/\belseif\b/g, '} else if')
+    .replace(/\belse\b/g, '} else {')
+    .replace(/\bend\b/g, '}');
+
+  // Add await before async calls (read, sleep)
+  js = js
+    .replace(/(?<!await\s)\bread\s*\(\)/g, 'await read()')
+    .replace(/(?<!await\s)\bio\.read\s*\(\)/g, 'await io.read()')
+    .replace(/(?<!await\s)\bsleep\s*\(/g, 'await sleep(')
+    .replace(/(?<!await\s)\bos\.sleep\s*\(/g, 'await os.sleep(');
+
+  return js;
+}
+
+// ==================== API MOCKS ====================
+function checkAbort() { if (executionAborted) throw new Error("Виконання зупинено"); }
+
+function createMocks() {
+  const rsState = {};
+
+  const mockPrint = (...args) => { checkAbort(); const t = args.join("\t"); lastPrintText = t; addConsoleLog(t, "info"); };
+  const mockWrite = (...args) => { checkAbort(); addConsoleLog(args.join(""), "info"); };
+  const mockRead = async () => { checkAbort(); const v = await consoleRead(lastPrintText || ">"); lastPrintText = ""; return v; };
+  const mockSleep = (sec) => { checkAbort(); addConsoleLog(`sleep(${sec})`, "info"); return new Promise(r => setTimeout(r, Math.min((sec||1)*1000, 10000))); };
+  const mockTonumber = (v) => { const n = Number(v); return isNaN(n) ? null : n; };
+  const mockTostring = (v) => String(v);
+  const mockType = (v) => { if (v === null || v === undefined) return "nil"; if (Array.isArray(v)) return "table"; return typeof v; };
+  const mockPairs = (t) => Object.entries(t || {});
+  const mockIpairs = (t) => (t || []).map((v, i) => [i + 1, v]);
+
+  const mockOs = { sleep: mockSleep, clock: () => 0, time: () => 12, day: () => 1 };
+  const mockIo = {
+    read: async () => { checkAbort(); const v = await consoleRead("io.read() >"); return v; },
+    write: mockWrite
+  };
+
+  const mockString = {
+    len: (s) => (s || "").length,
+    sub: (s, i, j) => (s || "").substring((i||1)-1, j || undefined),
+    find: (s, p) => { const idx = (s||"").indexOf(p); return idx >= 0 ? idx + 1 : null; },
+    format: (fmt, ...args) => { let i = 0; return (fmt||"").replace(/%[dfsq%]/g, m => m === "%%" ? "%" : String(args[i++] ?? "")); },
+    rep: (s, n) => (s || "").repeat(n || 0),
+    upper: (s) => (s || "").toUpperCase(),
+    lower: (s) => (s || "").toLowerCase(),
+    reverse: (s) => (s || "").split("").reverse().join(""),
+    byte: (s, i) => (s || "").charCodeAt((i||1)-1),
+    char: (...args) => String.fromCharCode(...args),
+    match: (s, p) => { const m = (s||"").match(new RegExp(p)); return m ? m[0] : null; },
+    gmatch: (s, p) => { const r = new RegExp(p, "g"); const results = []; let m; while ((m = r.exec(s)) !== null) results.push(m[0]); return results; },
+  };
+
+  const mockMath = {
+    floor: Math.floor, ceil: Math.ceil, abs: Math.abs,
+    max: Math.max, min: Math.min, sqrt: Math.sqrt,
+    sin: Math.sin, cos: Math.cos, pi: Math.PI,
+    random: (a, b) => a === undefined ? Math.random() : b === undefined ? Math.floor(Math.random() * a) + 1 : Math.floor(Math.random() * (b - a + 1)) + a,
+    huge: Infinity,
+  };
+
+  const mockTextutils = {
+    serialize: (t) => JSON.stringify(t, null, 2),
+    unserialize: (s) => { try { return JSON.parse(s); } catch { return null; } },
+    slowPrint: (t) => { mockPrint(t); },
+  };
+
+  // Turtle mock
+  const tState = { fuel: 5000, slot: 1, inv: {} };
+  const tLog = (m, r) => { checkAbort(); addConsoleLog(`turtle.${m}`, "turtle"); return r !== undefined ? r : true; };
+  const mockTurtle = {
+    forward: () => tLog("forward()"), back: () => tLog("back()"),
+    up: () => tLog("up()"), down: () => tLog("down()"),
+    turnLeft: () => tLog("turnLeft()"), turnRight: () => tLog("turnRight()"),
+    dig: () => tLog("dig()"), digUp: () => tLog("digUp()"), digDown: () => tLog("digDown()"),
+    place: () => tLog("place()"), placeUp: () => tLog("placeUp()"), placeDown: () => tLog("placeDown()"),
+    select: (s) => { tState.slot = s || 1; return tLog(`select(${s||1})`); },
+    getItemCount: (s) => tLog(`getItemCount(${s||tState.slot}) = 10`, 10),
+    getItemSpace: (s) => tLog(`getItemSpace(${s||tState.slot}) = 54`, 54),
+    getSelectedSlot: () => tLog(`getSelectedSlot() = ${tState.slot}`, tState.slot),
+    getItemDetail: (s) => { const d = {name:"minecraft:dirt",count:10}; tLog(`getItemDetail(${s||tState.slot})`); return d; },
+    refuel: (c) => { tState.fuel += (c||1)*80; return tLog(`refuel(${c||1}) fuel=${tState.fuel}`); },
+    getFuelLevel: () => tLog(`getFuelLevel() = ${tState.fuel}`, tState.fuel),
+    getFuelLimit: () => tLog("getFuelLimit() = 20000", 20000),
+    detect: () => tLog("detect() = true", true),
+    detectUp: () => tLog("detectUp() = false", false),
+    detectDown: () => tLog("detectDown() = true", true),
+    compare: () => tLog("compare() = true", true),
+    compareUp: () => tLog("compareUp() = false", false),
+    compareDown: () => tLog("compareDown() = true", true),
+    attack: () => tLog("attack()"), attackUp: () => tLog("attackUp()"), attackDown: () => tLog("attackDown()"),
+    drop: (c) => tLog(`drop(${c||1})`), dropUp: (c) => tLog(`dropUp(${c||1})`), dropDown: (c) => tLog(`dropDown(${c||1})`),
+    suck: (c) => tLog(`suck(${c||1})`), suckUp: (c) => tLog(`suckUp(${c||1})`), suckDown: (c) => tLog(`suckDown(${c||1})`),
+    transferTo: (s,c) => tLog(`transferTo(${s},${c||64})`),
+    equipLeft: () => tLog("equipLeft()"), equipRight: () => tLog("equipRight()"),
+    inspect: () => { tLog("inspect()"); return [true, {name:"minecraft:stone",state:{}}]; },
+    inspectUp: () => { tLog("inspectUp()"); return [false, {name:"minecraft:air",state:{}}]; },
+    inspectDown: () => { tLog("inspectDown()"); return [true, {name:"minecraft:dirt",state:{}}]; },
+  };
+
+  // Redstone mock
+  const mockRs = {
+    setOutput: (side, v) => { checkAbort(); rsState[side]=!!v; addConsoleLog(`rs.setOutput("${side}", ${v})`, "redstone"); },
+    getOutput: (side) => { checkAbort(); const v=rsState[side]||false; addConsoleLog(`rs.getOutput("${side}") = ${v}`, "redstone"); return v; },
+    getInput: (side) => { checkAbort(); addConsoleLog(`rs.getInput("${side}") = false`, "redstone"); return false; },
+    setAnalogOutput: (side, v) => { checkAbort(); rsState[side+"_a"]=v; addConsoleLog(`rs.setAnalogOutput("${side}", ${v})`, "redstone"); },
+    getAnalogOutput: (side) => { checkAbort(); const v=rsState[side+"_a"]||0; addConsoleLog(`rs.getAnalogOutput("${side}") = ${v}`, "redstone"); return v; },
+    getAnalogInput: (side) => { checkAbort(); addConsoleLog(`rs.getAnalogInput("${side}") = 0`, "redstone"); return 0; },
+  };
+
+  // Peripheral mock
+  const pLog = (m) => { checkAbort(); addConsoleLog(`peripheral.${m}`, "peripheral"); };
+  const makeMockMonitor = () => ({
+    write: (t) => { pLog(`monitor.write("${t}")`); },
+    clear: () => { pLog("monitor.clear()"); },
+    clearLine: () => { pLog("monitor.clearLine()"); },
+    setCursorPos: (x,y) => { pLog(`monitor.setCursorPos(${x},${y})`); },
+    getCursorPos: () => { pLog("monitor.getCursorPos() = 1,1"); return [1,1]; },
+    getSize: () => { pLog("monitor.getSize() = 39,13"); return [39,13]; },
+    setTextScale: (s) => { pLog(`monitor.setTextScale(${s})`); },
+    setTextColor: (c) => { pLog(`monitor.setTextColor(${c})`); },
+    setTextColour: (c) => { pLog(`monitor.setTextColour(${c})`); },
+    setBackgroundColor: (c) => { pLog(`monitor.setBackgroundColor(${c})`); },
+    setBackgroundColour: (c) => { pLog(`monitor.setBackgroundColour(${c})`); },
+    scroll: (n) => { pLog(`monitor.scroll(${n})`); },
+    isColor: () => true, isColour: () => true,
+  });
+  const makeMockModem = () => ({
+    open: (ch) => { pLog(`modem.open(${ch})`); },
+    close: (ch) => { pLog(`modem.close(${ch})`); },
+    closeAll: () => { pLog("modem.closeAll()"); },
+    isOpen: (ch) => { pLog(`modem.isOpen(${ch}) = true`); return true; },
+    transmit: (ch, rch, msg) => { pLog(`modem.transmit(${ch}, ${rch}, ${JSON.stringify(msg)})`); },
+    isWireless: () => true,
+  });
+
+  const mockPeripheral = {
+    find: (type) => { pLog(`find("${type}")`); return type === "monitor" ? makeMockMonitor() : type === "modem" ? makeMockModem() : null; },
+    wrap: (side) => { pLog(`wrap("${side}")`); return makeMockMonitor(); },
+    isPresent: (side) => { pLog(`isPresent("${side}") = true`); return true; },
+    getType: (side) => { pLog(`getType("${side}") = "monitor"`); return "monitor"; },
+    getNames: () => { pLog('getNames() = ["left","right"]'); return ["left","right"]; },
+  };
+
+  // Colors constants
+  const mockColors = {
+    white:1,orange:2,magenta:4,lightBlue:8,yellow:16,lime:32,pink:64,gray:128,
+    lightGray:256,cyan:512,purple:1024,blue:2048,brown:4096,green:8192,red:16384,black:32768
+  };
+
+  return { mockPrint, mockWrite, mockRead, mockSleep, mockTonumber, mockTostring, mockType,
+           mockPairs, mockIpairs, mockOs, mockIo, mockString, mockMath, mockTextutils,
+           mockTurtle, mockRs, mockPeripheral, mockColors };
+}
+
+// ==================== EXECUTION ====================
+const AsyncFunction = Object.getPrototypeOf(async function(){}).constructor;
+
+async function runLuaCode() {
+  const cur = tabs.find(t => t.id === activeTabId);
+  if (cur && editor) { cur.content = editor.getValue(); saveTabs(); }
+
+  clearConsole();
+  executionAborted = false;
+  isRunning = true;
+  lastPrintText = "";
+  document.getElementById("runBtn").style.display = "none";
+  document.getElementById("stopBtn").style.display = "block";
+
+  addConsoleLog("=== Початок виконання ===", "success");
+
+  try {
+    const jsCode = luaToJs(editor.getValue());
+    const m = createMocks();
+
+    const runCode = new AsyncFunction(
+      'print','write','read','sleep','tonumber','tostring','type',
+      'pairs','ipairs','os','io','string','math','textutils',
+      'turtle','rs','redstone','peripheral','colors','colours',
+      jsCode
+    );
+
+    await runCode(
+      m.mockPrint, m.mockWrite, m.mockRead, m.mockSleep,
+      m.mockTonumber, m.mockTostring, m.mockType,
+      m.mockPairs, m.mockIpairs, m.mockOs, m.mockIo,
+      m.mockString, m.mockMath, m.mockTextutils,
+      m.mockTurtle, m.mockRs, m.mockRs, m.mockPeripheral,
+      m.mockColors, m.mockColors
+    );
+
+    addConsoleLog("=== Виконано успішно ===", "success");
+  } catch (err) {
+    if (err.message === "Виконання зупинено") {
+      addConsoleLog("=== Зупинено ===", "error");
+    } else {
+      addConsoleLog(`Помилка: ${err.message}`, "error");
+      console.error(err);
     }
+  } finally {
+    isRunning = false;
+    document.getElementById("runBtn").style.display = "block";
+    document.getElementById("stopBtn").style.display = "none";
+  }
+}
 
-    function addTab() {
-      // Зберігаємо поточний контент
-      const cur = tabs.find(t => t.id === activeTabId);
-      if (cur && editor) cur.content = editor.getValue();
+function stopExecution() {
+  executionAborted = true;
+}
 
-      const id = nextTabId++;
-      tabs.push({ id, name: "new_" + id + ".lua", content: DEFAULT_CODE });
-      activeTabId = id;
-      if (editor) {
-        editor.setValue(DEFAULT_CODE, -1);
-        document.getElementById("fileName").value = "new_" + id + ".lua";
-      }
-      saveTabs();
-      renderTabs();
+// ==================== SNIPPETS ====================
+const SNIPPETS = [
+  { cat: "Mining", items: [
+    { title: "Tunnel", desc: "Копає тунель заданої довжини", code:
+`-- Tunnel digger
+local length = 20
+
+for i = 1, length do
+  turtle.dig()
+  turtle.forward()
+  turtle.digUp()
+end
+
+print("Tunnel done! Length: " .. length)` },
+    { title: "3x3 Tunnel", desc: "Тунель 3x3 блоки", code:
+`-- 3x3 Tunnel
+local length = 10
+
+for i = 1, length do
+  -- Bottom row
+  turtle.dig()
+  turtle.forward()
+  -- Middle
+  turtle.digUp()
+  turtle.up()
+  -- Top
+  turtle.digUp()
+  -- Side
+  turtle.turnLeft()
+  turtle.dig()
+  turtle.turnRight()
+  turtle.turnRight()
+  turtle.dig()
+  turtle.turnLeft()
+  -- Go back down
+  turtle.down()
+  -- Side at bottom
+  turtle.turnLeft()
+  turtle.dig()
+  turtle.turnRight()
+  turtle.turnRight()
+  turtle.dig()
+  turtle.turnLeft()
+end
+
+print("3x3 tunnel done!")` },
+    { title: "Quarry", desc: "Копає прямокутну область", code:
+`-- Simple quarry
+local width = 5
+local depth = 5
+local height = 3
+
+for y = 1, height do
+  for z = 1, depth do
+    for x = 1, width - 1 do
+      turtle.dig()
+      turtle.forward()
+    end
+    if z < depth then
+      if z % 2 == 1 then
+        turtle.turnRight()
+        turtle.dig()
+        turtle.forward()
+        turtle.turnRight()
+      else
+        turtle.turnLeft()
+        turtle.dig()
+        turtle.forward()
+        turtle.turnLeft()
+      end
+    end
+  end
+  if y < height then
+    turtle.digDown()
+    turtle.down()
+    turtle.turnRight()
+    turtle.turnRight()
+  end
+end
+
+print("Quarry done!")` },
+    { title: "Staircase", desc: "Копає сходи вниз", code:
+`-- Staircase digger
+local depth = 10
+
+for i = 1, depth do
+  turtle.dig()
+  turtle.forward()
+  turtle.digDown()
+  turtle.down()
+end
+
+print("Stairs done! Depth: " .. depth)` },
+  ]},
+  { cat: "Farming", items: [
+    { title: "Tree Farm", desc: "Рубає дерево і садить", code:
+`-- Tree farm
+-- Place sapling in slot 1
+
+if turtle.detect() then
+  -- Chop trunk
+  while turtle.detect() do
+    turtle.dig()
+    turtle.digUp()
+    turtle.up()
+  end
+  -- Go back down
+  while not turtle.detectDown() do
+    turtle.down()
+  end
+  -- Plant sapling
+  turtle.select(1)
+  turtle.place()
+  print("Tree chopped and replanted!")
+else
+  print("No tree detected")
+end` },
+  ]},
+  { cat: "Redstone", items: [
+    { title: "Toggle", desc: "Перемикає redstone сигнал", code:
+`-- Redstone toggle
+local side = "front"
+local state = rs.getOutput(side)
+rs.setOutput(side, not state)
+print("Redstone " .. side .. ": " .. tostring(not state))` },
+    { title: "Pulse", desc: "Короткий імпульс", code:
+`-- Redstone pulse
+local side = "front"
+rs.setOutput(side, true)
+sleep(0.5)
+rs.setOutput(side, false)
+print("Pulse sent!")` },
+  ]},
+  { cat: "Peripheral", items: [
+    { title: "Monitor", desc: "Вивід тексту на монітор", code:
+`-- Monitor output
+local mon = peripheral.find("monitor")
+if mon then
+  mon.setTextScale(1)
+  mon.clear()
+  mon.setCursorPos(1, 1)
+  mon.write("Hello from ComputerCraft!")
+  print("Text sent to monitor")
+else
+  print("No monitor found")
+end` },
+    { title: "Modem Send", desc: "Надсилання через модем", code:
+`-- Wireless modem send
+local modem = peripheral.find("modem")
+if modem then
+  modem.open(1)
+  modem.transmit(1, 1, "Hello!")
+  print("Message sent on channel 1")
+else
+  print("No modem found")
+end` },
+  ]},
+  { cat: "Utility", items: [
+    { title: "Fuel Check", desc: "Перевірка та заправка", code:
+`-- Fuel check and refuel
+local fuel = turtle.getFuelLevel()
+local limit = turtle.getFuelLimit()
+
+print("Fuel: " .. fuel .. "/" .. limit)
+
+if fuel < 100 then
+  print("Low fuel! Refueling...")
+  turtle.select(1)
+  turtle.refuel()
+  print("New fuel: " .. turtle.getFuelLevel())
+else
+  print("Fuel OK")
+end` },
+    { title: "Inventory Dump", desc: "Скидає все з інвентарю", code:
+`-- Dump all inventory down
+for slot = 1, 16 do
+  turtle.select(slot)
+  local count = turtle.getItemCount(slot)
+  if count > 0 then
+    turtle.dropDown()
+    print("Dropped slot " .. slot .. ": " .. count .. " items")
+  end
+end
+turtle.select(1)
+print("Inventory dumped!")` },
+  ]},
+];
+
+function renderSnippets() {
+  const el = document.getElementById("snippetContent");
+  el.innerHTML = SNIPPETS.map(cat => `
+    <div class="snippet-category">${cat.cat}</div>
+    <div class="snippet-grid">
+      ${cat.items.map((s, i) => `
+        <div class="snippet-card" onclick="insertSnippet('${cat.cat}',${i})">
+          <div class="title">${s.title}</div>
+          <div class="desc">${s.desc}</div>
+        </div>
+      `).join("")}
+    </div>
+  `).join("");
+}
+
+function insertSnippet(catName, idx) {
+  const cat = SNIPPETS.find(c => c.cat === catName);
+  if (!cat) return;
+  const snippet = cat.items[idx];
+  if (!snippet) return;
+  editor.setValue(snippet.code, -1);
+  syncTabName(snippet.title.toLowerCase().replace(/\s+/g, "_") + ".lua");
+  document.getElementById("fileName").value = tabs.find(t => t.id === activeTabId)?.name || "";
+  closeModal("snippetModal");
+}
+
+// ==================== FILE OPERATIONS ====================
+function refreshFileList() {
+  const comp = document.getElementById("compNumber").value.trim();
+  if (!comp) return;
+  const fileList = document.getElementById("fileList");
+  fileList.innerHTML = "<li>Завантаження...</li>";
+
+  const body = { comp, ...getServerPayload() };
+
+  fetch("/api/list_files", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) })
+  .then(r => r.json())
+  .then(data => {
+    if (data.error) { fileList.innerHTML = `<li style="color:var(--text-red);">${data.error}</li>`; return; }
+    if (!data.files || !data.files.length) { fileList.innerHTML = "<li>(порожньо)</li>"; return; }
+    fileList.innerHTML = "";
+    data.files.forEach(f => {
+      const li = document.createElement("li");
+      if (f === currentServerFile) li.classList.add("active");
+      const nameSpan = document.createElement("span");
+      nameSpan.className = "file-name";
+      nameSpan.textContent = f;
+      nameSpan.onclick = () => loadFileFromServer(comp, f);
+      const delBtn = document.createElement("button");
+      delBtn.className = "file-delete-btn";
+      delBtn.textContent = "\u00d7";
+      delBtn.title = "Видалити";
+      delBtn.onclick = (e) => { e.stopPropagation(); deleteFileFromServer(comp, f); };
+      li.appendChild(nameSpan);
+      li.appendChild(delBtn);
+      fileList.appendChild(li);
+    });
+  })
+  .catch(err => { fileList.innerHTML = `<li style="color:var(--text-red);">Помилка: ${err.message}</li>`; });
+}
+
+function loadFileFromServer(comp, file) {
+  const body = { comp, file, ...getServerPayload() };
+  fetch("/api/list_files", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) })
+  .then(r => r.json())
+  .then(data => {
+    if (data.error) return alert(data.error);
+    editor.setValue(data.content, -1);
+    document.getElementById("fileName").value = data.name;
+    syncTabName(data.name);
+    currentServerFile = data.name;
+    refreshFileList();
+  })
+  .catch(err => alert("Помилка: " + err.message));
+}
+
+function deleteFileFromServer(comp, file) {
+  if (!confirm(`Видалити "${file}" з сервера?`)) return;
+  const body = { comp, file, action: "delete", ...getServerPayload() };
+  fetch("/api/list_files", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) })
+  .then(r => r.json())
+  .then(data => {
+    if (data.error) { alert(data.error); return; }
+    if (currentServerFile === file) currentServerFile = null;
+    refreshFileList();
+  })
+  .catch(err => alert(err.message));
+}
+
+function uploadToServer() {
+  const code = editor.getValue().trim();
+  const comp = document.getElementById("compNumber").value.trim();
+  const fileName = document.getElementById("fileName").value.trim();
+  if (!code || !comp || !fileName) { setStatus("Заповніть всі поля.", "error"); return; }
+
+  localStorage.setItem("lua_comp", comp);
+  setStatus("Відправлення...", "loading");
+
+  const body = { code, comp, fileName, ...getServerPayload() };
+
+  fetch("/api/upload", { method: "POST", headers: {"Content-Type":"application/json"}, body: JSON.stringify(body) })
+  .then(r => r.text())
+  .then(() => { setStatus(`Збережено: ${fileName}`, "success"); currentServerFile = fileName; refreshFileList(); })
+  .catch(err => setStatus(err.message, "error"));
+}
+
+// ==================== RESIZABLE PANELS ====================
+function initSplitters() {
+  // Horizontal splitter (editor / console)
+  const hSplitter = document.getElementById("hSplitter");
+  const consoleWrap = document.getElementById("consoleWrapper");
+  const leftPanel = document.getElementById("leftPanel");
+  let hDragging = false;
+
+  hSplitter.addEventListener("mousedown", (e) => {
+    hDragging = true; hSplitter.classList.add("active");
+    e.preventDefault();
+  });
+
+  // Vertical splitter (left / sidebar)
+  const vSplitter = document.getElementById("vSplitter");
+  const sidebar = document.getElementById("sidebar");
+  let vDragging = false;
+
+  vSplitter.addEventListener("mousedown", (e) => {
+    vDragging = true; vSplitter.classList.add("active");
+    e.preventDefault();
+  });
+
+  document.addEventListener("mousemove", (e) => {
+    if (hDragging) {
+      const rect = leftPanel.getBoundingClientRect();
+      const newConsoleH = rect.bottom - e.clientY;
+      consoleWrap.style.height = Math.max(60, Math.min(newConsoleH, rect.height - 100)) + "px";
+      if (editor) editor.resize();
     }
-
-    function closeTab(id) {
-      if (tabs.length === 1) return; // Останній таб не закриваємо
-      const idx = tabs.findIndex(t => t.id === id);
-      tabs.splice(idx, 1);
-      if (activeTabId === id) {
-        const newActive = tabs[Math.min(idx, tabs.length - 1)];
-        activeTabId = newActive.id;
-        if (editor) {
-          editor.setValue(newActive.content, -1);
-          document.getElementById("fileName").value = newActive.name;
-        }
-      }
-      saveTabs();
-      renderTabs();
+    if (vDragging) {
+      const containerRect = document.getElementById("container").getBoundingClientRect();
+      const newSidebarW = containerRect.right - e.clientX;
+      sidebar.style.width = Math.max(200, Math.min(newSidebarW, containerRect.width - 300)) + "px";
+      if (editor) editor.resize();
     }
+  });
 
-    // Синхронізуємо ім'я файлу ↔ назву таба
-    function syncTabName(name) {
-      const tab = tabs.find(t => t.id === activeTabId);
-      if (tab) {
-        tab.name = name;
-        saveTabs();
-        renderTabs();
-      }
-    }
+  document.addEventListener("mouseup", () => {
+    if (hDragging) { hDragging = false; hSplitter.classList.remove("active"); }
+    if (vDragging) { vDragging = false; vSplitter.classList.remove("active"); }
+  });
+}
 
-    // 🐢 ComputerCraft Turtle API + Базові функції для автодоповнення
-    const turtleAPI = [
-      // Базові Lua функції
-      { name: "print", value: "print(text)", meta: "базова", score: 2000 },
-      { name: "read", value: "read()", meta: "ввід", score: 2000 },
-      { name: "write", value: "write(text)", meta: "базова", score: 2000 },
-      { name: "sleep", value: "sleep(seconds)", meta: "затримка", score: 2000 },
-      { name: "tonumber", value: "tonumber(value)", meta: "конвертація", score: 2000 },
-      { name: "tostring", value: "tostring(value)", meta: "конвертація", score: 2000 },
-      
-      // IO функції
-      { name: "io.read", value: "io.read()", meta: "io", score: 1900 },
-      { name: "io.write", value: "io.write(text)", meta: "io", score: 1900 },
-      
-      // OS функції
-      { name: "os.sleep", value: "os.sleep(seconds)", meta: "os", score: 1900 },
-      
-      // Turtle API - рух
-      { name: "turtle.forward", value: "turtle.forward()", meta: "turtle API", score: 1000 },
-      { name: "turtle.back", value: "turtle.back()", meta: "turtle API", score: 1000 },
-      { name: "turtle.up", value: "turtle.up()", meta: "turtle API", score: 1000 },
-      { name: "turtle.down", value: "turtle.down()", meta: "turtle API", score: 1000 },
-      { name: "turtle.turnLeft", value: "turtle.turnLeft()", meta: "turtle API", score: 1000 },
-      { name: "turtle.turnRight", value: "turtle.turnRight()", meta: "turtle API", score: 1000 },
-      { name: "turtle.dig", value: "turtle.dig()", meta: "turtle API", score: 1000 },
-      { name: "turtle.digUp", value: "turtle.digUp()", meta: "turtle API", score: 1000 },
-      { name: "turtle.digDown", value: "turtle.digDown()", meta: "turtle API", score: 1000 },
-      { name: "turtle.place", value: "turtle.place()", meta: "turtle API", score: 1000 },
-      { name: "turtle.placeUp", value: "turtle.placeUp()", meta: "turtle API", score: 1000 },
-      { name: "turtle.placeDown", value: "turtle.placeDown()", meta: "turtle API", score: 1000 },
-      { name: "turtle.select", value: "turtle.select(slot)", meta: "turtle API", score: 1000 },
-      { name: "turtle.getItemCount", value: "turtle.getItemCount(slot)", meta: "turtle API", score: 1000 },
-      { name: "turtle.getItemSpace", value: "turtle.getItemSpace(slot)", meta: "turtle API", score: 1000 },
-      { name: "turtle.detect", value: "turtle.detect()", meta: "turtle API", score: 1000 },
-      { name: "turtle.detectUp", value: "turtle.detectUp()", meta: "turtle API", score: 1000 },
-      { name: "turtle.detectDown", value: "turtle.detectDown()", meta: "turtle API", score: 1000 },
-      { name: "turtle.compare", value: "turtle.compare()", meta: "turtle API", score: 1000 },
-      { name: "turtle.compareUp", value: "turtle.compareUp()", meta: "turtle API", score: 1000 },
-      { name: "turtle.compareDown", value: "turtle.compareDown()", meta: "turtle API", score: 1000 },
-      { name: "turtle.attack", value: "turtle.attack()", meta: "turtle API", score: 1000 },
-      { name: "turtle.attackUp", value: "turtle.attackUp()", meta: "turtle API", score: 1000 },
-      { name: "turtle.attackDown", value: "turtle.attackDown()", meta: "turtle API", score: 1000 },
-      { name: "turtle.drop", value: "turtle.drop(count)", meta: "turtle API", score: 1000 },
-      { name: "turtle.dropUp", value: "turtle.dropUp(count)", meta: "turtle API", score: 1000 },
-      { name: "turtle.dropDown", value: "turtle.dropDown(count)", meta: "turtle API", score: 1000 },
-      { name: "turtle.suck", value: "turtle.suck(count)", meta: "turtle API", score: 1000 },
-      { name: "turtle.suckUp", value: "turtle.suckUp(count)", meta: "turtle API", score: 1000 },
-      { name: "turtle.suckDown", value: "turtle.suckDown(count)", meta: "turtle API", score: 1000 },
-      { name: "turtle.refuel", value: "turtle.refuel(count)", meta: "turtle API", score: 1000 },
-      { name: "turtle.getFuelLevel", value: "turtle.getFuelLevel()", meta: "turtle API", score: 1000 },
-      { name: "turtle.getFuelLimit", value: "turtle.getFuelLimit()", meta: "turtle API", score: 1000 },
-      { name: "turtle.transferTo", value: "turtle.transferTo(slot, count)", meta: "turtle API", score: 1000 },
-      { name: "turtle.getSelectedSlot", value: "turtle.getSelectedSlot()", meta: "turtle API", score: 1000 },
-      { name: "turtle.equipLeft", value: "turtle.equipLeft()", meta: "turtle API", score: 1000 },
-      { name: "turtle.equipRight", value: "turtle.equipRight()", meta: "turtle API", score: 1000 },
-      { name: "turtle.inspect", value: "turtle.inspect()", meta: "turtle API", score: 1000 },
-      { name: "turtle.inspectUp", value: "turtle.inspectUp()", meta: "turtle API", score: 1000 },
-      { name: "turtle.inspectDown", value: "turtle.inspectDown()", meta: "turtle API", score: 1000 },
-      { name: "turtle.getItemDetail", value: "turtle.getItemDetail(slot)", meta: "turtle API", score: 1000 },
+// ==================== STATUS BAR ====================
+function updateStatusBar() {
+  if (!editor) return;
+  const pos = editor.getCursorPosition();
+  document.getElementById("sbCursor").textContent = `Ln ${pos.row+1}, Col ${pos.column+1}`;
+  document.getElementById("sbLines").textContent = `Lines: ${editor.session.getLength()}`;
+}
 
-      // 🔴 Redstone API (rs = redstone)
-      { name: "rs.setOutput",       value: 'rs.setOutput("front", true)',   meta: "redstone", score: 1500 },
-      { name: "rs.getOutput",       value: 'rs.getOutput("front")',         meta: "redstone", score: 1500 },
-      { name: "rs.getInput",        value: 'rs.getInput("front")',          meta: "redstone", score: 1500 },
-      { name: "rs.setAnalogOutput", value: 'rs.setAnalogOutput("front", 15)', meta: "redstone", score: 1500 },
-      { name: "rs.getAnalogOutput", value: 'rs.getAnalogOutput("front")',   meta: "redstone", score: 1500 },
-      { name: "rs.getAnalogInput",  value: 'rs.getAnalogInput("front")',    meta: "redstone", score: 1500 },
-      { name: "redstone.setOutput",       value: 'redstone.setOutput("front", true)',   meta: "redstone", score: 1400 },
-      { name: "redstone.getOutput",       value: 'redstone.getOutput("front")',         meta: "redstone", score: 1400 },
-      { name: "redstone.getInput",        value: 'redstone.getInput("front")',          meta: "redstone", score: 1400 },
-      { name: "redstone.setAnalogOutput", value: 'redstone.setAnalogOutput("front", 15)', meta: "redstone", score: 1400 },
-      { name: "redstone.getAnalogOutput", value: 'redstone.getAnalogOutput("front")',   meta: "redstone", score: 1400 },
-      { name: "redstone.getAnalogInput",  value: 'redstone.getAnalogInput("front")',    meta: "redstone", score: 1400 },
-    ];
+// ==================== INIT ====================
+window.onload = function() {
+  // Theme
+  applyTheme(getTheme());
 
-    // Власний completers для ComputerCraft API
-    const customCompleter = {
-      getCompletions: function(editor, session, pos, prefix, callback) {
-        callback(null, turtleAPI.map(api => ({
-          caption: api.name,
-          value: api.value,
-          meta: api.meta,
-          score: api.score
-        })));
-      }
+  // Ace Editor
+  editor = ace.edit("editor");
+  editor.setTheme("ace/theme/" + (getTheme() === "dark" ? "monokai" : "chrome"));
+  editor.session.setMode("ace/mode/lua");
+  editor.setShowPrintMargin(false);
+  editor.setOptions({
+    fontSize: currentFontSize + "px",
+    showLineNumbers: true, showGutter: true,
+    highlightActiveLine: true, wrap: true,
+    enableBasicAutocompletion: true,
+    enableLiveAutocompletion: true,
+    enableSnippets: true,
+  });
+  ace.require("ace/ext/language_tools").addCompleter(customCompleter);
+
+  consoleOutput = document.getElementById("consoleOutput");
+
+  // Tabs
+  const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
+  activeTabId = activeTab.id;
+  editor.setValue(activeTab.content, -1);
+  document.getElementById("fileName").value = activeTab.name;
+  renderTabs();
+
+  // Server profiles
+  renderServerSelect();
+
+  // Status bar updates
+  editor.selection.on("changeCursor", updateStatusBar);
+  editor.session.on("change", updateStatusBar);
+  updateStatusBar();
+
+  // Snippets
+  renderSnippets();
+
+  // Splitters
+  initSplitters();
+
+  // === EVENT HANDLERS ===
+  document.getElementById("addTabBtn").onclick = addTab;
+  document.getElementById("fileName").addEventListener("change", function() { syncTabName(this.value); });
+  document.getElementById("zoomInBtn").onclick = () => { currentFontSize = Math.min(currentFontSize + 2, 32); editor.setFontSize(currentFontSize + "px"); };
+  document.getElementById("zoomOutBtn").onclick = () => { currentFontSize = Math.max(currentFontSize - 2, 10); editor.setFontSize(currentFontSize + "px"); };
+  document.getElementById("themeBtn").onclick = toggleTheme;
+  document.getElementById("runBtn").onclick = runLuaCode;
+  document.getElementById("stopBtn").onclick = stopExecution;
+  document.getElementById("clearConsoleBtn").onclick = clearConsole;
+
+  document.getElementById("snippetBtn").onclick = () => openModal("snippetModal");
+  document.getElementById("serverManageBtn").onclick = () => { renderServerList(); openModal("serverModal"); };
+  document.getElementById("serverSelect").onchange = function() { setActiveServerId(this.value); updateStatusServer(); };
+
+  // Save / Load
+  document.getElementById("saveBtn").onclick = () => {
+    const code = editor.getValue();
+    const fn = document.getElementById("fileName").value || "program.lua";
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([code], {type:"text/plain"}));
+    a.download = fn; a.click();
+  };
+  const fileInput = document.getElementById("fileInput");
+  document.getElementById("loadBtn").onclick = () => fileInput.click();
+  fileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0]; if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      editor.setValue(ev.target.result, -1);
+      document.getElementById("fileName").value = file.name;
+      syncTabName(file.name);
     };
+    reader.readAsText(file, "UTF-8");
+  });
 
-    // Поточний відкритий файл з сервера
-    let currentServerFile = null;
+  // Upload
+  document.getElementById("uploadBtn").onclick = uploadToServer;
+  document.getElementById("refreshFilesBtn").onclick = () => {
+    if (!document.getElementById("compNumber").value.trim()) return alert("Вкажіть номер комп'ютера.");
+    refreshFileList();
+  };
+  document.getElementById("compNumber").addEventListener("input", function() {
+    if (this.value.trim()) localStorage.setItem("lua_comp", this.value.trim());
+  });
 
-    // Статус upload з автофейдом
-    function setStatus(msg, type) {
-      const el = document.getElementById("ftpStatus");
-      el.className = "status-" + type;
-      el.style.opacity = "1";
-      el.textContent = msg;
-      if (type === "success") {
-        setTimeout(() => {
-          el.style.opacity = "0";
-          setTimeout(() => { el.textContent = ""; el.className = ""; el.style.opacity = "1"; }, 500);
-        }, 3000);
-      }
-    }
+  // Restore saved values
+  const savedComp = localStorage.getItem("lua_comp");
+  if (savedComp) document.getElementById("compNumber").value = savedComp;
 
-    // Оновити список файлів на сервері
-    function refreshFileList() {
-      const comp = document.getElementById("compNumber").value.trim();
-      if (!comp) return;
-      const fileList = document.getElementById("fileList");
-      fileList.innerHTML = "<li>⏳ Завантаження...</li>";
-      fetch("/api/list_files", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comp })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) { fileList.innerHTML = `<li style='color:red;'>${data.error}</li>`; return; }
-        if (!data.files || data.files.length === 0) { fileList.innerHTML = "<li>(порожньо)</li>"; return; }
-        fileList.innerHTML = "";
-        data.files.forEach(f => {
-          const li = document.createElement("li");
-          if (f === currentServerFile) li.classList.add("active");
+  // Keyboard shortcuts
+  document.addEventListener("keydown", (e) => {
+    if (e.ctrlKey && e.shiftKey && e.key === "S") { e.preventDefault(); uploadToServer(); }
+    else if (e.ctrlKey && !e.shiftKey && e.key === "s") { e.preventDefault(); document.getElementById("saveBtn").click(); }
+    else if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); if (isRunning) stopExecution(); else runLuaCode(); }
+    else if (e.ctrlKey && e.key === "t") { e.preventDefault(); addTab(); }
+  });
 
-          const nameSpan = document.createElement("span");
-          nameSpan.className = "file-name";
-          nameSpan.textContent = f;
-          nameSpan.title = f;
-          nameSpan.onclick = () => loadFileFromServer(comp, f);
+  // Close modals on overlay click
+  document.querySelectorAll(".modal-overlay").forEach(overlay => {
+    overlay.addEventListener("click", (e) => { if (e.target === overlay) overlay.classList.remove("open"); });
+  });
 
-          const delBtn = document.createElement("button");
-          delBtn.className = "file-delete-btn";
-          delBtn.textContent = "🗑";
-          delBtn.title = "Видалити з сервера";
-          delBtn.onclick = (e) => { e.stopPropagation(); deleteFileFromServer(comp, f); };
-
-          li.appendChild(nameSpan);
-          li.appendChild(delBtn);
-          fileList.appendChild(li);
-        });
-      })
-      .catch(err => { fileList.innerHTML = `<li style='color:red;'>Помилка: ${err.message}</li>`; });
-    }
-
-    // Видалити файл з сервера
-    function deleteFileFromServer(comp, file) {
-      if (!confirm(`Видалити "${file}" з сервера?`)) return;
-      fetch("/api/list_files", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comp, file, action: "delete" })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) { alert("❌ " + data.error); return; }
-        if (currentServerFile === file) currentServerFile = null;
-        refreshFileList();
-      })
-      .catch(err => alert("❌ " + err.message));
-    }
-
-    // Додавання рядка в консоль
-    function addConsoleLog(text, type = "info") {
-      const line = document.createElement("div");
-      line.className = `console-line console-${type}`;
-      line.textContent = text;
-      consoleOutput.appendChild(line);
-      consoleOutput.scrollTop = consoleOutput.scrollHeight;
-    }
-
-    // Змінна для збереження останнього print()
-    let lastPrintText = "";
-
-    // Очистити консоль
-    function clearConsole() {
-      consoleOutput.innerHTML = '<div class="console-line console-info">Консоль очищено</div>';
-    }
-
-    // Запустити Lua код (ВИПРАВЛЕНА ВЕРСІЯ БЕЗ FENGARI)
-    function runLuaCode() {
-      // Зберігаємо поточний контент таба
-      const cur = tabs.find(t => t.id === activeTabId);
-      if (cur && editor) { cur.content = editor.getValue(); saveTabs(); }
-
-      clearConsole();
-      lastPrintText = ""; // Очищуємо підказку
-      addConsoleLog("=== Початок виконання ===", "success");
-      
-      const code = editor.getValue();
-      
-      try {
-        // Конвертуємо Lua синтаксис в JavaScript
-        let jsCode = code
-          // Коментарі
-          .replace(/--\[\[[\s\S]*?\]\]/g, '') // блокові коментарі
-          .replace(/--[^\n]*/g, '') // рядкові коментарі
-          
-          // Lua конструкції → JavaScript
-          .replace(/\bfunction\s+(\w+)\s*\((.*?)\)/g, 'function $1($2)')
-          .replace(/\blocal\s+/g, 'let ')
-          .replace(/\bthen\b/g, '{')
-          .replace(/\bdo\b/g, '{')
-          .replace(/\bend\b/g, '}')
-          .replace(/\belseif\b/g, '} else if')
-          .replace(/\belse\b/g, '} else {')
-          
-          // Цикл for i = start, end do → for (let i = start; i <= end; i++)
-          .replace(/for\s+(\w+)\s*=\s*([^,]+),\s*([^,\s]+)\s*\{/g, 
-                   'for (let $1 = $2; $1 <= $3; $1++) {')
-          
-          // Конкатенація .. → +
-          .replace(/\.\./g, '+');
-        
-        // 🔴 Мок для Redstone API
-        const rsState = {};
-        const mockRs = {
-          setOutput: (side, value) => {
-            rsState[side] = !!value;
-            addConsoleLog(`🔴 rs.setOutput("${side}", ${value})`, "redstone");
-          },
-          getOutput: (side) => {
-            const v = rsState[side] || false;
-            addConsoleLog(`🔴 rs.getOutput("${side}") → ${v}`, "redstone");
-            return v;
-          },
-          getInput: (side) => {
-            addConsoleLog(`🔴 rs.getInput("${side}") → false`, "redstone");
-            return false;
-          },
-          setAnalogOutput: (side, value) => {
-            rsState[side + "_analog"] = value;
-            addConsoleLog(`🔴 rs.setAnalogOutput("${side}", ${value})`, "redstone");
-          },
-          getAnalogOutput: (side) => {
-            const v = rsState[side + "_analog"] || 0;
-            addConsoleLog(`🔴 rs.getAnalogOutput("${side}") → ${v}`, "redstone");
-            return v;
-          },
-          getAnalogInput: (side) => {
-            addConsoleLog(`🔴 rs.getAnalogInput("${side}") → 0`, "redstone");
-            return 0;
-          },
-        };
-
-        // Створюємо функцію з доступом до наших моків
-        const runCode = new Function('print', 'turtle', 'read', 'write', 'sleep', 'tonumber', 'tostring', 'os', 'io', 'rs', 'redstone', jsCode);
-        
-        // Мок для print()
-        const mockPrint = (...args) => {
-          const text = args.join("\t");
-          lastPrintText = text; // Зберігаємо для read()
-          addConsoleLog(text, "info");
-        };
-        
-        // Мок для read() - зчитування вводу
-        const mockRead = () => {
-          // Використовуємо останній print() як підказку
-          const promptText = lastPrintText || "Введи значення:";
-          const input = prompt(promptText);
-          addConsoleLog(`⌨️ Ввід користувача: ${input}`, "info");
-          lastPrintText = ""; // Очищуємо після використання
-          return input;
-        };
-        
-        // Мок для write() - вивід без переносу рядка
-        const mockWrite = (...args) => {
-          addConsoleLog(args.join(""), "info");
-        };
-        
-        // Мок для sleep() - затримка
-        const mockSleep = (seconds) => {
-          addConsoleLog(`⏱️ sleep(${seconds}) - пропущено в тесті`, "info");
-        };
-        
-        // tonumber() - конвертація в число
-        const mockTonumber = (value) => {
-          const num = Number(value);
-          return isNaN(num) ? null : num;
-        };
-        
-        // tostring() - конвертація в рядок
-        const mockTostring = (value) => {
-          return String(value);
-        };
-        
-        // Мок для os
-        const mockOs = {
-          sleep: (seconds) => {
-            addConsoleLog(`⏱️ os.sleep(${seconds}) - пропущено в тесті`, "info");
-          }
-        };
-        
-        // Мок для io (input/output)
-        const mockIo = {
-          read: () => {
-            // Використовуємо останній print() як підказку
-            const promptText = lastPrintText || "io.read() - Введи значення:";
-            const input = prompt(promptText);
-            addConsoleLog(`⌨️ io.read() → ${input}`, "info");
-            lastPrintText = ""; // Очищуємо після використання
-            return input;
-          },
-          write: (...args) => {
-            addConsoleLog(args.join(""), "info");
-          }
-        };
-        
-        // Мок для turtle API (ПОВНИЙ СПИСОК)
-        const mockTurtle = {
-          // Рух
-          forward: () => { addConsoleLog("🐢 turtle.forward()", "turtle"); return true; },
-          back: () => { addConsoleLog("🐢 turtle.back()", "turtle"); return true; },
-          up: () => { addConsoleLog("🐢 turtle.up()", "turtle"); return true; },
-          down: () => { addConsoleLog("🐢 turtle.down()", "turtle"); return true; },
-          turnLeft: () => { addConsoleLog("🐢 turtle.turnLeft()", "turtle"); return true; },
-          turnRight: () => { addConsoleLog("🐢 turtle.turnRight()", "turtle"); return true; },
-          
-          // Копання
-          dig: () => { addConsoleLog("🐢 turtle.dig()", "turtle"); return true; },
-          digUp: () => { addConsoleLog("🐢 turtle.digUp()", "turtle"); return true; },
-          digDown: () => { addConsoleLog("🐢 turtle.digDown()", "turtle"); return true; },
-          
-          // Розміщення блоків
-          place: () => { addConsoleLog("🐢 turtle.place()", "turtle"); return true; },
-          placeUp: () => { addConsoleLog("🐢 turtle.placeUp()", "turtle"); return true; },
-          placeDown: () => { addConsoleLog("🐢 turtle.placeDown()", "turtle"); return true; },
-          
-          // Інвентар
-          select: (slot) => { addConsoleLog(`🐢 turtle.select(${slot || 1})`, "turtle"); return true; },
-          getItemCount: (slot) => {
-            addConsoleLog(`🐢 turtle.getItemCount(${slot || "current"}) → 10`, "turtle");
-            return 10;
-          },
-          getItemSpace: (slot) => {
-            addConsoleLog(`🐢 turtle.getItemSpace(${slot || "current"}) → 54`, "turtle");
-            return 54;
-          },
-          getSelectedSlot: () => {
-            addConsoleLog("🐢 turtle.getSelectedSlot() → 1", "turtle");
-            return 1;
-          },
-          getItemDetail: (slot) => {
-            addConsoleLog(`🐢 turtle.getItemDetail(${slot || "current"}) → {name: "minecraft:dirt", count: 10}`, "turtle");
-            return { name: "minecraft:dirt", count: 10 };
-          },
-          
-          // Паливо
-          refuel: (count) => {
-            addConsoleLog(`🐢 turtle.refuel(${count || 1})`, "turtle");
-            return true;
-          },
-          getFuelLevel: () => {
-            addConsoleLog("🐢 turtle.getFuelLevel() → 5000", "turtle");
-            return 5000;
-          },
-          getFuelLimit: () => {
-            addConsoleLog("🐢 turtle.getFuelLimit() → 20000", "turtle");
-            return 20000;
-          },
-          
-          // Детекція
-          detect: () => {
-            addConsoleLog("🐢 turtle.detect() → true", "turtle");
-            return true;
-          },
-          detectUp: () => {
-            addConsoleLog("🐢 turtle.detectUp() → false", "turtle");
-            return false;
-          },
-          detectDown: () => {
-            addConsoleLog("🐢 turtle.detectDown() → true", "turtle");
-            return true;
-          },
-          
-          // Порівняння
-          compare: () => {
-            addConsoleLog("🐢 turtle.compare() → true", "turtle");
-            return true;
-          },
-          compareUp: () => {
-            addConsoleLog("🐢 turtle.compareUp() → false", "turtle");
-            return false;
-          },
-          compareDown: () => {
-            addConsoleLog("🐢 turtle.compareDown() → true", "turtle");
-            return true;
-          },
-          
-          // Атака
-          attack: () => { addConsoleLog("🐢 turtle.attack()", "turtle"); return true; },
-          attackUp: () => { addConsoleLog("🐢 turtle.attackUp()", "turtle"); return true; },
-          attackDown: () => { addConsoleLog("🐢 turtle.attackDown()", "turtle"); return true; },
-          
-          // Перенесення предметів
-          drop: (count) => {
-            addConsoleLog(`🐢 turtle.drop(${count || 1})`, "turtle");
-            return true;
-          },
-          dropUp: (count) => {
-            addConsoleLog(`🐢 turtle.dropUp(${count || 1})`, "turtle");
-            return true;
-          },
-          dropDown: (count) => {
-            addConsoleLog(`🐢 turtle.dropDown(${count || 1})`, "turtle");
-            return true;
-          },
-          suck: (count) => {
-            addConsoleLog(`🐢 turtle.suck(${count || 1})`, "turtle");
-            return true;
-          },
-          suckUp: (count) => {
-            addConsoleLog(`🐢 turtle.suckUp(${count || 1})`, "turtle");
-            return true;
-          },
-          suckDown: (count) => {
-            addConsoleLog(`🐢 turtle.suckDown(${count || 1})`, "turtle");
-            return true;
-          },
-          transferTo: (slot, count) => {
-            addConsoleLog(`🐢 turtle.transferTo(${slot}, ${count || 64})`, "turtle");
-            return true;
-          },
-          
-          // Екіпірування
-          equipLeft: () => {
-            addConsoleLog("🐢 turtle.equipLeft()", "turtle");
-            return true;
-          },
-          equipRight: () => {
-            addConsoleLog("🐢 turtle.equipRight()", "turtle");
-            return true;
-          },
-          
-          // Інспекція
-          inspect: () => {
-            addConsoleLog("🐢 turtle.inspect() → {name: 'minecraft:stone', state: {}}", "turtle");
-            return true, { name: "minecraft:stone", state: {} };
-          },
-          inspectUp: () => {
-            addConsoleLog("🐢 turtle.inspectUp() → {name: 'minecraft:air', state: {}}", "turtle");
-            return false, { name: "minecraft:air", state: {} };
-          },
-          inspectDown: () => {
-            addConsoleLog("🐢 turtle.inspectDown() → {name: 'minecraft:dirt', state: {}}", "turtle");
-            return true, { name: "minecraft:dirt", state: {} };
-          },
-        };
-        
-        // Виконуємо код з нашими моками
-        runCode(mockPrint, mockTurtle, mockRead, mockWrite, mockSleep, mockTonumber, mockTostring, mockOs, mockIo, mockRs, mockRs);
-        
-        addConsoleLog("=== Виконано успішно ===", "success");
-        
-      } catch (err) {
-        addConsoleLog(`❌ Помилка: ${err.message}`, "error");
-        console.error(err);
-      }
-    }
-
-    window.onload = function() {
-      // 🧩 Ініціалізація Ace Editor
-      editor = ace.edit("editor");
-      editor.setTheme("ace/theme/monokai");
-      editor.session.setMode("ace/mode/lua");
-      editor.setShowPrintMargin(false);
-
-      // Увімкнути автодоповнення
-      editor.setOptions({
-        fontSize: currentFontSize + "px",
-        showLineNumbers: true,
-        showGutter: true,
-        highlightActiveLine: true,
-        wrap: true,
-        enableBasicAutocompletion: true,
-        enableLiveAutocompletion: true,
-        enableSnippets: true,
-      });
-
-      // Додати наш власний completer
-      ace.require("ace/ext/language_tools").addCompleter(customCompleter);
-
-      consoleOutput = document.getElementById("consoleOutput");
-
-      // 📑 Ініціалізація табів
-      const activeTab = tabs.find(t => t.id === activeTabId) || tabs[0];
-      activeTabId = activeTab.id;
-      editor.setValue(activeTab.content, -1);
-      document.getElementById("fileName").value = activeTab.name;
-      renderTabs();
-
-      document.getElementById("addTabBtn").onclick = addTab;
-
-      // Синхронізація назви файлу → таб
-      document.getElementById("fileName").addEventListener("change", function() {
-        syncTabName(this.value);
-      });
-
-      // 🔍 Масштабування
-      document.getElementById("zoomInBtn").onclick = function() {
-        currentFontSize = Math.min(currentFontSize + 2, 30);
-        editor.setFontSize(currentFontSize + "px");
-      };
-
-      document.getElementById("zoomOutBtn").onclick = function() {
-        currentFontSize = Math.max(currentFontSize - 2, 10);
-        editor.setFontSize(currentFontSize + "px");
-      };
-
-      // 🚀 Запустити тест
-      document.getElementById("runBtn").onclick = runLuaCode;
-
-      // 🗑️ Очистити консоль
-      document.getElementById("clearConsoleBtn").onclick = clearConsole;
-
-      // 💾 Зберегти локально
-      document.getElementById("saveBtn").onclick = function() {
-        const code = editor.getValue();
-        const fileName = document.getElementById("fileName").value || "program.lua";
-
-        const blob = new Blob([code], { type: "text/plain" });
-        const a = document.createElement("a");
-        a.href = URL.createObjectURL(blob);
-        a.download = fileName;
-        a.click();
-      };
-
-      // 📂 Завантажити файл
-      const fileInput = document.getElementById("fileInput");
-      document.getElementById("loadBtn").onclick = () => fileInput.click();
-
-      fileInput.addEventListener("change", (event) => {
-        const file = event.target.files[0];
-        if (!file) return;
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          editor.setValue(e.target.result, -1);
-          document.getElementById("fileName").value = file.name;
-          syncTabName(file.name);
-        };
-        reader.readAsText(file, "UTF-8");
-      });
-
-      // 📤 Вивантажити на сервер (Ctrl+Shift+S)
-      document.getElementById("uploadBtn").onclick = function() {
-        const code = editor.getValue().trim();
-        const comp = document.getElementById("compNumber").value.trim();
-        const fileName = document.getElementById("fileName").value.trim();
-
-        if (!code || !comp || !fileName) {
-          setStatus("⛔ Заповніть всі поля.", "error");
-          return;
-        }
-
-        // Зберігаємо номер комп'ютера
-        localStorage.setItem("lua_comp", comp);
-
-        setStatus("⏳ Відправлення...", "loading");
-
-        fetch("/api/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ code, comp, fileName })
-        })
-        .then(res => res.text())
-        .then(() => {
-          setStatus(`✅ Збережено: ${fileName}`, "success");
-          currentServerFile = fileName;
-          refreshFileList();
-        })
-        .catch(err => setStatus("❌ " + err.message, "error"));
-      };
-
-      // 📁 Оновити список файлів
-      document.getElementById("refreshFilesBtn").onclick = function() {
-        const comp = document.getElementById("compNumber").value.trim();
-        if (!comp) return alert("Вкажіть номер комп'ютера.");
-        refreshFileList();
-      };
-
-      // Зберігаємо номер комп'ютера при введенні
-      document.getElementById("compNumber").addEventListener("input", function() {
-        if (this.value.trim()) localStorage.setItem("lua_comp", this.value.trim());
-      });
-
-      // Відновлюємо номер комп'ютера з localStorage
-      const savedComp = localStorage.getItem("lua_comp");
-      if (savedComp) document.getElementById("compNumber").value = savedComp;
-
-      // ⌨️ Гарячі клавіші
-      document.addEventListener("keydown", (e) => {
-        if (e.ctrlKey && e.shiftKey && e.key === "S") {
-          e.preventDefault();
-          document.getElementById("uploadBtn").click();
-        } else if (e.ctrlKey && !e.shiftKey && e.key === "s") {
-          e.preventDefault();
-          document.getElementById("saveBtn").click();
-        } else if (e.ctrlKey && e.key === "Enter") {
-          e.preventDefault();
-          document.getElementById("runBtn").click();
-        }
-      });
-    };
-
-    // 📥 Завантажити вибраний файл у редактор
-    function loadFileFromServer(comp, file) {
-      fetch("/api/list_files", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ comp, file })
-      })
-      .then(res => res.json())
-      .then(data => {
-        if (data.error) return alert(data.error);
-        editor.setValue(data.content, -1);
-        document.getElementById("fileName").value = data.name;
-        syncTabName(data.name);
-        currentServerFile = data.name;
-        refreshFileList();
-      })
-      .catch(err => alert("❌ Помилка: " + err.message));
-    }
-  </script>
+  // Close modals on Escape
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") document.querySelectorAll(".modal-overlay.open").forEach(m => m.classList.remove("open"));
+  });
+};
+</script>
 </body>
 </html>
